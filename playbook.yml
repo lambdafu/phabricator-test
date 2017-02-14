@@ -17,7 +17,8 @@
       - php7.1-curl
       - php7.1-fpm
       - php7.1-gd
-      - python3-pygments
+      - python-pygments
+      - php7.1-apcu
   - name: create phabricator directory
     file: path=/opt/phabricator state=directory owner=www-data group=www-data mode=02775
   - name: checkout phutil
@@ -47,27 +48,6 @@
   - name: configure nginx 3
     file: path=/etc/nginx/sites-enabled/phabricator state=link src=../sites-available/phabricator
     notify: restart nginx
-
-
-  - name: Get DB root user
-    shell: "grep ^user /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
-    register: mysql_user
-  - name: Get DB root password
-    shell: "grep ^password /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
-    register: mysql_password
-
-  - name: configure phabricator mysql user
-    command: chdir=/opt/phabricator/phabricator ./bin/config set mysql.user {{ mysql_user.stdout }}
-  - name: configure phabricator mysql pass
-    command: chdir=/opt/phabricator/phabricator ./bin/config set mysql.pass {{ mysql_password.stdout }}
-  - name: create storage
-    command: chdir=/opt/phabricator/phabricator ./bin/storage upgrade --force
-
-  # Register admin user
-  # [Configure auth provider]
-
-  - name: configure base uri
-    command: chdir=/opt/phabricator/phabricator ./bin/config set phabricator.base-uri http://127.0.0.1:8080/
 
   - name: configure my.cnf max_allowed_packet
     ini_file:
@@ -110,13 +90,73 @@
       value: Europe/berlin
     notify: restart fpm
 
-  # large file storage
+  # https://secure.phabricator.com/book/phabricator/article/configuring_file_storage/
+  - name: configure php.ini max_input_vars
+    ini_file:
+      dest: /etc/php/7.1/fpm/php.ini
+      section: PHP
+      option: max_input_vars
+      value: 32768
+    notify: restart fpm
 
-  - name: create phabricator directory
-    file: path=/var/repo state=directory owner=www-data group=www-data mode=02775
-    
-  # local repo path
-  # pygments
+  - name: configure php.ini upload_max_filesize
+    ini_file:
+      dest: /etc/php/7.1/fpm/php.ini
+      section: PHP
+      option: upload_max_filesize
+      value: 64M
+    notify: restart fpm
+
+  - name: configure php.ini opcache.validate_timestamps
+    ini_file:
+      dest: /etc/php/7.1/fpm/php.ini
+      section: opcache
+      option: opcache.validate_timestamps
+      value: 0
+    notify: restart fpm
+
+  - name: create phabricator repo directory
+    file: path=/opt/phabricator/repos state=directory owner=www-data group=www-data mode=02775
+  - name: configure phabricator repo path
+    command: chdir=/opt/phabricator/phabricator ./bin/config set repository.default-local-path /opt/phabricator/repos
+
+  - name: create phabricator storage directory
+    file: path=/opt/phabricator/files state=directory owner=www-data group=www-data mode=02775
+  - name: configure phabricator local disk path
+    command: chdir=/opt/phabricator/phabricator ./bin/config set storage.local-disk.path /opt/phabricator/files
+
+  # Configure storage and mysql.
+
+  - name: Get DB root user
+    shell: "grep ^user /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
+    register: mysql_user
+  - name: Get DB root password
+    shell: "grep ^password /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
+    register: mysql_password
+
+  - name: configure phabricator mysql user
+    command: chdir=/opt/phabricator/phabricator ./bin/config set mysql.user {{ mysql_user.stdout }}
+  - name: configure phabricator mysql pass
+    command: chdir=/opt/phabricator/phabricator ./bin/config set mysql.pass {{ mysql_password.stdout }}
+  - name: create storage
+    command: chdir=/opt/phabricator/phabricator ./bin/storage upgrade --force
+
+  # Register admin user
+  # [Configure auth provider]
+
+  - name: configure base uri
+    command: chdir=/opt/phabricator/phabricator ./bin/config set phabricator.base-uri http://127.0.0.1:8080/
+
+  - name: configure base uri
+    command: chdir=/opt/phabricator/phabricator ./bin/config set pygments.enabled true
+
+  - name: configure base uri
+    command: chdir=/opt/phabricator/phabricator ./bin/config set metamta.mail-adapter PhabricatorMailImplementationTestAdapter
+
+  # Cheap hack to suppress warning. FIXME
+  - name: configure base uri
+    command: chdir=/opt/phabricator/phabricator ./bin/config set security.alternate-file-domain http://localhost.localdomain:8080/
+
   # sendmail
   # opcache
   # apcu
@@ -129,10 +169,8 @@
     - name: restart nginx
       service: name=nginx state=restarted
 
-  handlers:
     - name: restart fpm
       service: name=php7.1-fpm state=restarted
 
-  handlers:
     - name: restart mysql
       service: name=mysql state=restarted
