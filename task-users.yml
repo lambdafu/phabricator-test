@@ -1,0 +1,24 @@
+- name: create daemon group
+  group:
+    name: "{{daemon_user}}"
+
+- name: create daemon user
+  user:
+    name: "{{daemon_user}}"
+    group: "{{daemon_user}}"
+
+- name: create vcs group
+  group:
+    name: "{{vcs_user}}"
+
+- name: create vcs user
+  user:
+    name: "{{vcs_user}}"
+    group: "{{vcs_user}}"
+
+- name: configure sudo for www-data and vcs user
+  template:
+    src: etc/sudoers.d/10-phabricator.j2
+    dest: /etc/sudoers.d/10-phabricator
+    validate: 'visudo -cf %s'
+

@@ -1,0 +1,2 @@
+www-data ALL=({{daemon_user}}) SETENV: NOPASSWD: /usr/bin/git-upload-pack, /usr/lib/git-core/git-http-backend
+{{vcs_user}} ALL=({{daemon_user}}) SETENV: NOPASSWD: /usr/bin/git-upload-pack, /usr/bin/git-receive-pack

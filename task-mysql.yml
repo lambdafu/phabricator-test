@@ -1,0 +1,34 @@
+- name: configure mysqld max_allowed_packet
+  ini_file:
+    dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+    section: mysqld
+    option: max_allowed_packet
+    value: 33554432
+  notify: restart mysql
+
+- name: configure mysqld sql_mode
+  ini_file:
+    dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+    section: mysqld
+    option: sql_mode
+    value: STRICT_ALL_TABLES
+  notify: restart mysql
+
+- name: configure mysqld innodb_buffer_pool_size
+  ini_file:
+    dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+    section: mysqld
+    option: innodb_buffer_pool_size
+    # FIXME: Use 40% of system RAM here.
+    value: 512M
+  notify: restart mysql
+
+# Get credentials for later.
+
+- name: Get DB root user
+  shell: "grep ^user /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
+  register: mysql_user
+
+- name: Get DB root password
+  shell: "grep ^password /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
+  register: mysql_password

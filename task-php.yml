@@ -1,0 +1,44 @@
+- name: configure php.ini post_max_size
+  ini_file:
+    dest: /etc/php/7.1/fpm/php.ini
+    section: PHP
+    option: post_max_size
+    # At least 32M.
+    value: 64M
+  notify: restart fpm
+
+- name: configure php.ini date.timezone
+  ini_file:
+    dest: /etc/php/7.1/fpm/php.ini
+    section: Date
+    option: date.timezone
+    value: "{{timezone}}"
+  notify: restart fpm
+
+# https://secure.phabricator.com/book/phabricator/article/configuring_file_storage/
+- name: configure php.ini max_input_vars
+  ini_file:
+    dest: /etc/php/7.1/fpm/php.ini
+    section: PHP
+    option: max_input_vars
+    # FIXME: Somewhat arbitrary ("astronomical").
+    value: 32768
+  notify: restart fpm
+
+- name: configure php.ini upload_max_filesize
+  ini_file:
+    dest: /etc/php/7.1/fpm/php.ini
+    section: PHP
+    option: upload_max_filesize
+    # At least 32M.
+    value: 64M
+  notify: restart fpm
+
+- name: configure php.ini opcache.validate_timestamps
+  ini_file:
+    dest: /etc/php/7.1/fpm/php.ini
+    section: opcache
+    option: opcache.validate_timestamps
+    value: 0
+  notify: restart fpm
+

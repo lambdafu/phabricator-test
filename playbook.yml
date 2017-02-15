@@ -1,176 +1,41 @@
 ---
 - hosts: all
   become: true
+
+  vars:
+    phab_home: /opt/phabricator
+    phab: "{{phab_home}}/phabricator"
+    repos: "{{phab_home}}/repos"
+    files: "{{phab_home}}/files"
+    vcs_user: git
+    daemon_user: phd
+    timezone: Europe/Berlin
+    base_uri: http://127.0.0.1:8080/
+    # Cheap hack to suppress warning.
+    file_uri: http://localhost.localdomain:8080/
+    prototypes: "true"
+    imagemagick: "true"
+    youtube: "true"
+    test_plan: "true"
+
   tasks:
-  - name: install php 7.1 repo
-    apt_repository: repo=ppa:ondrej/php
-  - name: install dependencies
-    apt: name={{item}}
-    with_items:
-      - git
-      - python3-mysqldb
-      - nginx
-      - mysql-server
-      - php7.1
-      - php7.1-mbstring
-      - php7.1-mysql
-      - php7.1-curl
-      - php7.1-fpm
-      - php7.1-gd
-      - python-pygments
-      - php7.1-apcu
-  - name: create phabricator directory
-    file: path=/opt/phabricator state=directory owner=www-data group=www-data mode=02775
-  - name: checkout phutil
-    git:
-      repo: https://github.com/phacility/libphutil.git
-      dest: /opt/phabricator/libphutil
-      version: stable
-      umask: "0022"
-  - name: checkout arcanist
-    git:
-      repo: https://github.com/phacility/arcanist.git
-      dest: /opt/phabricator/arcanist
-      version: stable
-      umask: "0022"
-  - name: checkout phabricator
-    git:
-      repo: https://github.com/phacility/phabricator.git
-      dest: /opt/phabricator/phabricator
-      version: stable
-      umask: "0022"
-  - name: configure nginx 1
-    copy: src=nginx.conf dest=/etc/nginx/sites-available/phabricator
-    notify: restart nginx
-  - name: configure nginx 2
-    file: path=/etc/nginx/sites-enabled/default state=absent
-    notify: restart nginx
-  - name: configure nginx 3
-    file: path=/etc/nginx/sites-enabled/phabricator state=link src=../sites-available/phabricator
-    notify: restart nginx
-
-  - name: configure my.cnf max_allowed_packet
-    ini_file:
-      dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-      section: mysqld
-      option: max_allowed_packet
-      value: 33554432
-    notify: restart mysql
-
-  - name: configure my.cnf sql_mode
-    ini_file:
-      dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-      section: mysqld
-      option: sql_mode
-      value: STRICT_ALL_TABLES
-    notify: restart mysql
-
-  - name: configure my.cnf innodb_buffer_pool_size
-    ini_file:
-      dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-      section: mysqld
-      option: innodb_buffer_pool_size
-      value: 512M
-    # Use larger value (FIXME)
-    notify: restart mysql
-
-  - name: configure php.ini post_max_size
-    ini_file:
-      dest: /etc/php/7.1/fpm/php.ini
-      section: PHP
-      option: post_max_size
-      value: 64M
-    notify: restart fpm
-
-  - name: configure php.ini date.timezone
-    ini_file:
-      dest: /etc/php/7.1/fpm/php.ini
-      section: Date
-      option: date.timezone
-      value: Europe/berlin
-    notify: restart fpm
-
-  # https://secure.phabricator.com/book/phabricator/article/configuring_file_storage/
-  - name: configure php.ini max_input_vars
-    ini_file:
-      dest: /etc/php/7.1/fpm/php.ini
-      section: PHP
-      option: max_input_vars
-      value: 32768
-    notify: restart fpm
-
-  - name: configure php.ini upload_max_filesize
-    ini_file:
-      dest: /etc/php/7.1/fpm/php.ini
-      section: PHP
-      option: upload_max_filesize
-      value: 64M
-    notify: restart fpm
-
-  - name: configure php.ini opcache.validate_timestamps
-    ini_file:
-      dest: /etc/php/7.1/fpm/php.ini
-      section: opcache
-      option: opcache.validate_timestamps
-      value: 0
-    notify: restart fpm
-
-  - name: create phabricator repo directory
-    file: path=/opt/phabricator/repos state=directory owner=www-data group=www-data mode=02775
-  - name: configure phabricator repo path
-    command: chdir=/opt/phabricator/phabricator ./bin/config set repository.default-local-path /opt/phabricator/repos
-
-  - name: create phabricator storage directory
-    file: path=/opt/phabricator/files state=directory owner=www-data group=www-data mode=02775
-  - name: configure phabricator local disk path
-    command: chdir=/opt/phabricator/phabricator ./bin/config set storage.local-disk.path /opt/phabricator/files
-
-  # Configure storage and mysql.
-
-  - name: Get DB root user
-    shell: "grep ^user /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
-    register: mysql_user
-  - name: Get DB root password
-    shell: "grep ^password /etc/mysql/debian.cnf |tail -n 1 | cut -d= -f2 | awk '{print $1}'"
-    register: mysql_password
-
-  - name: configure phabricator mysql user
-    command: chdir=/opt/phabricator/phabricator ./bin/config set mysql.user {{ mysql_user.stdout }}
-  - name: configure phabricator mysql pass
-    command: chdir=/opt/phabricator/phabricator ./bin/config set mysql.pass {{ mysql_password.stdout }}
-  - name: create storage
-    command: chdir=/opt/phabricator/phabricator ./bin/storage upgrade --force
-
-  # Register admin user
-  # [Configure auth provider]
-
-  - name: configure base uri
-    command: chdir=/opt/phabricator/phabricator ./bin/config set phabricator.base-uri http://127.0.0.1:8080/
-
-  - name: configure base uri
-    command: chdir=/opt/phabricator/phabricator ./bin/config set pygments.enabled true
-
-  - name: configure base uri
-    command: chdir=/opt/phabricator/phabricator ./bin/config set metamta.mail-adapter PhabricatorMailImplementationTestAdapter
-
-  # Cheap hack to suppress warning. FIXME
-  - name: configure base uri
-    command: chdir=/opt/phabricator/phabricator ./bin/config set security.alternate-file-domain http://localhost.localdomain:8080/
-
-  # sendmail
-  # opcache
-  # apcu
-
-  # FIXME: Use systemd unit file.
-  - name: start daemons
-    command: chdir=/opt/phabricator/phabricator ./bin/phd restart
+  - include: task-deps.yml
+  - include: task-users.yml
+  - include: task-source.yml
+  - include: task-mysql.yml
+  - include: task-nginx.yml
+  - include: task-php.yml
+  - include: task-phabricator.yml
 
   handlers:
-    - name: restart nginx
-      service: name=nginx state=restarted
+  - name: restart mysql
+    service: name=mysql state=restarted
 
-    - name: restart fpm
-      service: name=php7.1-fpm state=restarted
+  - name: restart nginx
+    service: name=nginx state=restarted
 
-    - name: restart mysql
-      service: name=mysql state=restarted
+  - name: restart fpm
+    service: name=php7.1-fpm state=restarted
+    
+  - name: restart phabricator
+    systemd: name=phabricator-phd daemon_reload=yes state=restarted

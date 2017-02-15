@@ -1,0 +1,13 @@
+[Unit]
+Description=Phabricator Aphlict
+After=syslog.target network.target mysql.service
+
+[Service]
+Type=forking
+User={{daemon_user}}
+Group={{daemon_user}}
+ExecStart={{phab}}/bin/aphlict start
+ExecStop={{phab}}/bin/aphlict stop
+
+[Install]
+WantedBy=multi-user.target

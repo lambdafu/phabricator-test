@@ -1,0 +1,89 @@
+- name: configure phabricator mysql user
+  command: chdir={{ phab }} ./bin/config set mysql.user {{ mysql_user.stdout }}
+  notify: restart phabricator
+
+- name: configure phabricator mysql pass
+  command: chdir={{ phab }} ./bin/config set mysql.pass {{ mysql_password.stdout }}
+  notify: restart phabricator
+
+- name: create storage
+  command: chdir={{ phab }} ./bin/storage upgrade --force
+  notify: restart phabricator
+
+
+# Configure repository hosting.
+
+- name: create phabricator repo directory
+  file:
+    path: "{{repos}}"
+    state: directory
+    owner: "{{daemon_user}}"
+    group: "{{daemon_user}}"
+
+- name: configure phabricator repo path
+  command: chdir={{ phab }} ./bin/config set repository.default-local-path {{repos}}
+  notify: restart phabricator
+
+- name: create phabricator storage directory
+  file:
+    path: "{{files}}"
+    state: directory
+    owner: www-data
+    group: www-data
+
+- name: configure phabricator local disk path
+  command: chdir={{ phab }} ./bin/config set storage.local-disk.path {{files}}
+  notify: restart phabricator
+
+
+- name: configure phd user
+  command: chdir={{ phab }} ./bin/config set phd.user {{daemon_user}}
+  notify: restart phabricator
+
+- name: configure diffusion ssh user
+  command: chdir={{ phab }} ./bin/config set diffusion.ssh-user {{vcs_user}}
+  notify: restart phabricator
+
+
+- name: configure base uri
+  command: chdir={{ phab }} ./bin/config set phabricator.base-uri {{base_uri}}
+  notify: restart phabricator
+
+- name: configure pygments
+  command: chdir={{ phab }} ./bin/config set pygments.enabled true
+  notify: restart phabricator
+
+- name: configure mail adapter
+  # FIXME: In production, you want to use something else.
+  command: chdir={{ phab }} ./bin/config set metamta.mail-adapter PhabricatorMailImplementationTestAdapter
+  notify: restart phabricator
+
+- name: configure alternate file domain
+  command: chdir={{ phab }} ./bin/config set security.alternate-file-domain {{file_uri}}
+  notify: restart phabricator
+
+
+- name: enable prototypes
+  command: chdir={{ phab }} ./bin/config set phabricator.show-prototypes {{prototypes}}
+  notify: restart phabricator
+
+- name: configure imagemagick
+  command: chdir={{ phab }} ./bin/config set files.enable-imagemagick {{imagemagick}}
+  notify: restart phabricator
+
+- name: enable youtube
+  command: chdir={{ phab }} ./bin/config set remarkup.enable-embedded-youtube {{youtube}}
+  notify: restart phabricator
+
+
+- name: require test plan
+  command: chdir={{ phab }} ./bin/config set differential.require-test-plan-field {{test_plan}}
+  notify: restart phabricator
+
+
+- name: install phabricator systemd unit file
+  template:
+    src: etc/systemd/system/phabricator-phd.service.j2
+    dest: /etc/systemd/system/phabricator-phd.service
+  notify:
+    - restart phabricator

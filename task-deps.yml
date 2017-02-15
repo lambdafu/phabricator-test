@@ -1,0 +1,25 @@
+### Prepare system.
+
+# Ubuntu 16.04 has PHP 7.0, which does not work for phabricator due
+# to lack of async_signals.  So add PHP 7.1 repo.
+
+- name: install php 7.1 repo
+  apt_repository: repo=ppa:ondrej/php
+
+- name: install dependencies
+  apt: name={{item}}
+  with_items:
+    - git
+    - python3-mysqldb
+    - nginx
+    - mysql-server
+    - php7.1
+    - php7.1-mbstring
+    - php7.1-mysql
+    - php7.1-curl
+    - php7.1-fpm
+    - php7.1-gd
+    - python-pygments
+    - php7.1-apcu
+    - imagemagick
+

@@ -1,0 +1,29 @@
+### Get source code.
+
+- name: create phabricator directory
+  file:
+    path: "{{phab_home}}"
+    state: directory
+    owner: "{{daemon_user}}"
+    group: "{{daemon_user}}"
+
+- name: checkout phutil
+  become_user: "{{daemon_user}}"
+  git:
+    repo: https://github.com/phacility/libphutil.git
+    dest: "{{phab_home}}/libphutil"
+    version: stable
+
+- name: checkout arcanist
+  become_user: "{{daemon_user}}"
+  git:
+    repo: https://github.com/phacility/arcanist.git
+    dest: "{{phab_home}}/arcanist"
+    version: stable
+
+- name: checkout phabricator
+  become_user: "{{daemon_user}}"
+  git:
+    repo: https://github.com/phacility/phabricator.git
+    dest: "{{phab}}"
+    version: stable

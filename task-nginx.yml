@@ -1,0 +1,14 @@
+- name: configure nginx
+  template:
+    src: etc/nginx/sites-available/phabricator.j2
+    dest: /etc/nginx/sites-available/phabricator
+  notify: restart nginx
+
+- name: configure nginx disable default
+  file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: restart nginx
+
+- name: configure nginx enable phabricator
+  file: path=/etc/nginx/sites-enabled/phabricator state=link src=../sites-available/phabricator
+  notify: restart nginx
+
