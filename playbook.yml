@@ -3,7 +3,7 @@
   become: true
 
   vars:
-    phab_home: /opt/phabricator
+    phab_home: /opt/phacility
     phab: "{{phab_home}}/phabricator"
     repos: "{{phab_home}}/repos"
     files: "{{phab_home}}/files"
