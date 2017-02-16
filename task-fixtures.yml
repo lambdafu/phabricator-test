@@ -1,0 +1,8 @@
+- name: copy scripts
+  synchronize:
+    src: bin
+    dest: "{{phab_home}}"
+    
+- name: set up admin user
+  command: chdir={{ phab_home }} ./bin/accountadmin admin admin@example.com Admin test1234
+

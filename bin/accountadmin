@@ -1,0 +1,56 @@
+#!/usr/bin/env php
+<?php
+
+$root = dirname(dirname(__FILE__));
+require_once $root.'/phabricator/scripts/__init_script__.php';
+
+$table = new PhabricatorUser();
+$any_user = queryfx_one(
+  $table->establishConnection('r'),
+  'SELECT * FROM %T LIMIT 1',
+  $table->getTableName());
+$is_first_user = (!$any_user);
+
+if (!$is_first_user) {
+  echo pht("Skipping first user creation.");
+  exit(0);
+}
+
+if ($argc !== 4) {
+  echo pht(
+    "Usage: %s\n",
+    'accountadmin <username> <email> <realname> <password>');
+  exit(1);
+}
+
+$username = $argv[1];
+$email = $argv[2];
+$realname = $argv[3];
+
+if (!PhabricatorUser::validateUsername($username)) {
+  $valid = PhabricatorUser::describeValidUsername();
+  echo pht("The username '%s' is invalid. %s", $username, $valid)."\n";
+  exit(1);
+}
+
+$user = new PhabricatorUser();
+$user->setUsername($username);
+$user->setRealName($realname);
+
+$user->openTransaction();
+
+  $editor = new PhabricatorUserEditor();
+  $editor->setActor($user);
+  $email_obj = id(new PhabricatorUserEmail())
+    ->setAddress($email)
+    ->setIsVerified(1);
+
+  $user->setIsApproved(1);
+  $editor->createNewUser($user, $email_obj);
+
+  $editor->makeAdminUser($user, true);
+  $editor->makeSystemAgentUser($user, false);
+
+$user->saveTransaction();
+
+echo pht('Saved changes.')."\n";

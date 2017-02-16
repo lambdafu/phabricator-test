@@ -26,6 +26,7 @@
   - include: task-nginx.yml
   - include: task-php.yml
   - include: task-phabricator.yml
+  - include: task-fixtures.yml
 
   handlers:
   - name: restart mysql
