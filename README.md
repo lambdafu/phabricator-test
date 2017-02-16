@@ -1,9 +1,9 @@
 Use
 ===
 
-{{{
+```
 vagrant up --provider virtualbox
-}}}
+```
 
 Then go to
 
