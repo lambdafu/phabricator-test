@@ -1,8 +1,12 @@
+# Configuration options here are not locked and can be set in the database.
+
 - name: copy scripts
   synchronize:
     src: bin
     dest: "{{phab_home}}"
-    
+
 - name: set up admin user
-  command: chdir={{ phab_home }} ./bin/accountadmin admin admin@example.com Admin test1234
+  become_user: "{{daemon_user}}"
+  command: chdir={{phab_home}} ./bin/accountadmin admin admin@example.com Admin
+  notify: restart phabricator
 
