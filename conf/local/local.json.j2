@@ -1,0 +1,23 @@
+{
+    "mysql.pass": "{{mysql_password.stdout}}",
+    "mysql.user": "{{mysql_user.stdout}}",
+
+    "phabricator.base-uri": "{{base_uri}}",
+    "security.alternate-file-domain": "{{file_uri}}",
+    "metamta.mail-adapter": "PhabricatorMailImplementationTestAdapter",
+    "diffusion.ssh-user": "{{vcs_user}}",
+    "phd.user": "{{daemon_user}}",
+    "storage.local-disk.path": "{{files}}",
+    "repository.default-local-path": "{{repos}}",
+
+    "pygments.enabled": true,
+    "differential.require-test-plan-field": {{test_plan}},
+    "remarkup.enable-embedded-youtube": {{youtube}},
+    "files.enable-imagemagick": {{imagemagick}},
+    "phabricator.show-prototypes": {{prototypes}},
+
+    "ui.logo": {
+	"logoImagePHID": null,
+	"wordmarkText": "{{project}}"
+    }
+}

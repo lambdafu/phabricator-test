@@ -13,6 +13,8 @@
     base_uri: http://127.0.0.1:8080/
     # Cheap hack to suppress warning.
     file_uri: http://localhost.localdomain:8080/
+
+    project: "TheProject"
     prototypes: "true"
     imagemagick: "true"
     youtube: "true"
