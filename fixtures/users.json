@@ -1,0 +1,4 @@
+[
+    { "name": "admin", "realname": "Admin", "email": "admin@example.com", "admin": true },
+    { "name": "marcus", "realname": "Marcus Brinkmann", "email": "marcus@gnupg.org" }
+]   

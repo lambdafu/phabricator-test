@@ -1,0 +1,68 @@
+#!/usr/bin/env php
+<?php
+
+$root = dirname(dirname(__FILE__));
+require_once $root.'/phabricator/scripts/__init_script__.php';
+
+if ($argc !== 2) {
+  echo pht(
+    "Usage: %s\n",
+    'import-users <users.json>');
+  exit(1);
+}
+
+$jsonfile = $argv[1];
+$json = file_get_contents($jsonfile, true);
+$data = json_decode($json);
+
+foreach($data as $user) {
+    register_user((array)$user);
+}
+
+function register_user($user) {
+    
+
+    $username = $user['name'];
+    $realname = $user['realname'];
+    $email = $user['email'];
+    $admin = isset($user['admin']) ? $user['admin'] : false;
+
+    if (!PhabricatorUser::validateUsername($username)) {
+        $valid = PhabricatorUser::describeValidUsername();
+        echo pht("The username '%s' is invalid. %s", $username, $valid)."\n";
+        exit(1);
+    }
+ 
+    $user = id(new PhabricatorUser())->loadOneWhere('username = %s', $username);
+    if ($user) {
+        echo pht("Ignored: %s", $username)."\n";
+	return;
+    }
+
+    $email_obj = id(new PhabricatorUserEmail())
+        ->setAddress($email)
+        ->setIsVerified(1);
+
+    $user = new PhabricatorUser();
+    $user->setUsername($username);
+    $user->setRealName($realname);
+    $user->setIsApproved(1);
+
+    $user->openTransaction();
+
+    $editor = new PhabricatorUserEditor();
+
+    $actor = id(new PhabricatorUser())->loadOneWhere('username = "admin"');
+    if (!$actor) {
+        $actor = $user;
+    }
+    $editor->setActor($actor);
+
+    $editor->createNewUser($user, $email_obj);
+    $editor->makeAdminUser($user, $admin);
+    $editor->makeSystemAgentUser($user, false);
+
+    $user->saveTransaction();
+
+    echo pht('Created: %s', $username)."\n";
+}

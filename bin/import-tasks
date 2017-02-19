@@ -1,0 +1,212 @@
+#!/usr/bin/env php
+<?php
+
+$root = dirname(dirname(__FILE__));
+require_once $root.'/phabricator/scripts/__init_script__.php';
+
+# list of status:
+# open, resolved, wontfix, invalid, duplicate, spite
+
+# list of priorities:
+# unbreak, triage, high, normal, low, wish, wishlist
+$p2k = ManiphestTaskPriority::getTaskPriorityKeywordsMap();
+$k2p = array();
+foreach($p2k as $prio => $kwlist) {
+    foreach($kwlist as $kw) {
+        $k2p[$kw] = $prio;
+    }
+}
+
+$k2a = array(
+    'title' => ManiphestTransaction::TYPE_TITLE,
+    'description' =>  ManiphestTransaction::TYPE_DESCRIPTION,
+    'owner' => ManiphestTransaction::TYPE_OWNER,
+    'status' => ManiphestTransaction::TYPE_STATUS,
+    'priority' =>  ManiphestTransaction::TYPE_PRIORITY
+);
+
+# Main
+
+if ($argc !== 2) {
+  echo pht(
+    "Usage: %s\n",
+    'import-tasks <tasks.json>');
+  exit(1);
+}
+
+$jsonfile = $argv[1];
+$json = file_get_contents($jsonfile, true);
+$data = json_decode($json);
+
+foreach($data as $task) {
+    create_task((array)$task);
+}
+
+function create_task($task) {
+    global $k2p;
+
+    $id = $task['id'];
+    $ts = $task['ts'];
+    $authorname = $task['author'];
+    $description = $task['description'];
+    $title = $task['title'];
+    
+    $priority = ManiphestTaskPriority::getDefaultPriority();
+    if (isset($task['priority'])) {
+        $priority = $k2p[$task['priority']];
+    }
+	
+    $author = id(new PhabricatorUser())
+        ->loadOneWhere('username = %s', $authorname);
+    if (!$author) {
+        echo pht("error: %s: %s: %s", $id, "author not found", $authorname)."\n";
+	return;
+    }
+
+    # Destroy old.
+
+    $viewer = id(PhabricatorUser::getOmnipotentUser());
+    $object_names = ['T' . (string)$id];
+    $object_query = id(new PhabricatorObjectQuery())
+      ->setViewer($viewer)
+      ->withNames($object_names);
+    $object_query->execute();
+    $named_objects = $object_query->getNamedResults();
+    foreach ($named_objects as $object_name => $object) {
+      echo pht(
+          "Destroying %s **%s**...\n",
+          get_class($object),
+          $object_name);
+
+      id(new PhabricatorDestructionEngine())
+        ->destroyObject($object);
+    }
+
+    # Create new.
+    
+    $task_obj = ManiphestTask::initializeNewTask($author)
+      ->setTitle($title)
+      ->setAuthorPHID($author->getPHID())
+      ->setStatus(ManiphestTaskStatus::getDefaultStatus())
+      ->setPriority((int)$priority)
+      ->setDescription($description)
+      ->setDangerousOverrideTimeStamp($ts)
+      ->setDangerousOverrideID($id);
+
+#      ->setViewPolicy($view_policy)
+#      ->setEditPolicy($edit_policy)
+#      ->setSpacePHID($actor->getDefaultSpacePHID())
+#      ->attachProjectPHIDs(array())
+#      ->attachSubscriberPHIDs(array());
+
+    if (isset($task['owner'])) {
+        $ownername = $task['owner'];
+	$owner = id(new PhabricatorUser())
+            ->loadOneWhere('username = %s', $ownername);
+        if (!$owner) {
+            echo pht("error: %s: %s: %s", $id, "owner not found", $ownername)."\n";
+            return;
+        }
+        $task_obj->setOwnerPHID($owner->getPHID());
+    }
+
+    $task_obj->save();
+
+    if (isset($task['changes'])) {
+        foreach($task['changes'] as $change) {
+            create_change($task, (array)$change, $task_obj);
+	}
+    }
+
+    echo pht('imported: %s', $id)."\n";
+}
+
+function create_change($task, $change, $task_obj) {
+    global $k2a;
+    global $k2p;
+
+    $ts = $change['ts'];
+    $authorname = $change['author'];
+    $author = id(new PhabricatorUser())
+        ->loadOneWhere('username = %s', $authorname);
+    if (!$author) {
+        echo pht("error: %s: %s: %s", $id, "change author not found", $authorname)."\n";
+	return;
+    }
+
+    $typename = $change['type'];
+    $type = $k2a[$typename];
+    $value = $change['value'];
+
+    # Reinterpret value according to type. 
+    if ($typename == 'owner') {
+        $ownername = $value;
+	$owner = id(new PhabricatorUser())
+            ->loadOneWhere('username = %s', $ownername);
+        if (!$owner) {
+            echo pht("error: %s: %s: %s", $id, "owner not found", $ownername)."\n";
+            return;
+        }
+	$value = $owner->getPHID();
+    } else if ($typename == 'priority') {
+        $value = $k2p[$value];
+    } else if ($typename == 'subscribers') {
+#     $changes[PhabricatorTransactions::TYPE_SUBSCRIBERS] =
+#       array('=' => $this->getCCPHIDs());
+        return; # FIXME
+    }
+
+    $action = id(new ManiphestTransaction())
+        ->setTransactionType($type)
+        ->setNewValue($value)
+        ->setDangerousOverrideTimeStamp($ts);
+
+    $content_source = PhabricatorContentSource::newForSource(
+        PhabricatorConsoleContentSource::SOURCECONST);
+
+    $transactions = array();
+    $transactions[] = $action;
+
+    $task_obj->openTransaction();
+    $editor = id(new ManiphestTransactionEditor())
+       ->setActor($author)
+       ->setContentSource($content_source)
+       ->setContinueOnNoEffect(true)
+       ->setContinueOnMissingFields(true)
+       ->applyTransactions($task_obj, $transactions);
+    $task_obj->saveTransaction();
+
+}
+
+#     $transactions[] = id(new ManiphestTransaction())
+#         ->setTransactionType(PhabricatorTransactions::TYPE_EDGE)
+#         ->setMetadataValue(
+#           'edge:type',
+#           PhabricatorProjectObjectHasProjectEdgeType::EDGECONST)
+#         ->setNewValue(
+#           array(
+#             '=' => array_fuse($this->getProjectPHIDs()),
+#           ));
+
+#   public function getCCPHIDs() {
+#     $ccs = array();
+#     for ($i = 0; $i < rand(1, 4);$i++) {
+#       $ccs[] = $this->loadPhabrictorUserPHID();
+#     }
+#     return $ccs;
+#   }
+
+#   public function getProjectPHIDs() {
+#     $projects = array();
+#     for ($i = 0; $i < rand(1, 4);$i++) {
+#       $project = $this->loadOneRandom('PhabricatorProject');
+#       if ($project) {
+#         $projects[] = $project->getPHID();
+#       }
+#     }
+#     return $projects;
+#   }
+
+
+
+# }
