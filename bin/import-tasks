@@ -22,7 +22,8 @@ $k2a = array(
     'description' =>  ManiphestTransaction::TYPE_DESCRIPTION,
     'owner' => ManiphestTransaction::TYPE_OWNER,
     'status' => ManiphestTransaction::TYPE_STATUS,
-    'priority' =>  ManiphestTransaction::TYPE_PRIORITY
+    'priority' =>  ManiphestTransaction::TYPE_PRIORITY,
+    'add_comment' =>  PhabricatorTransactions::TYPE_COMMENT
 );
 
 # Main
@@ -63,6 +64,8 @@ function create_task($task) {
 	return;
     }
 
+    echo pht("importing: %s", $id)."\n";
+
     # Destroy old.
 
     $viewer = id(PhabricatorUser::getOmnipotentUser());
@@ -76,7 +79,7 @@ function create_task($task) {
       echo pht(
           "Destroying %s **%s**...\n",
           get_class($object),
-          $object_name);
+          $object_name)."\n";
 
       id(new PhabricatorDestructionEngine())
         ->destroyObject($object);
@@ -138,6 +141,7 @@ function create_change($task, $change, $task_obj) {
     $type = $k2a[$typename];
     $value = $change['value'];
 
+    echo pht("change: %s", $typename)."\n";
     # Reinterpret value according to type. 
     if ($typename == 'owner') {
         $ownername = $value;
@@ -153,13 +157,21 @@ function create_change($task, $change, $task_obj) {
     } else if ($typename == 'subscribers') {
 #     $changes[PhabricatorTransactions::TYPE_SUBSCRIBERS] =
 #       array('=' => $this->getCCPHIDs());
-        return; # FIXME
-    }
+# Could also be + or -.
+        return; # FIXME 
+   }
 
     $action = id(new ManiphestTransaction())
         ->setTransactionType($type)
-        ->setNewValue($value)
         ->setDangerousOverrideTimeStamp($ts);
+
+    if ($type == PhabricatorTransactions::TYPE_COMMENT) {
+        $action->attachComment(
+          id(new ManiphestTransactionComment())
+            ->setContent($value));
+    } else {
+        $action->setNewValue($value);
+    }
 
     $content_source = PhabricatorContentSource::newForSource(
         PhabricatorConsoleContentSource::SOURCECONST);

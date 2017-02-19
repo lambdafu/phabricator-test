@@ -40,6 +40,11 @@
 	    "author": "marcus",
 	    "type": "priority",
 	    "value": "normal"
+	  },
+	  { "ts": 1458164428,
+	    "author": "marcus",
+	    "type": "add_comment",
+	    "value": "This is remarkable."
 	  }
       ]
     }
