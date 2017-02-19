@@ -1,0 +1,96 @@
+diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/storage/lisk/LiskDAO.php
+--- a/src/infrastructure/storage/lisk/LiskDAO.php
++++ b/src/infrastructure/storage/lisk/LiskDAO.php
+@@ -197,6 +197,9 @@
+   protected $dateCreated;
+   protected $dateModified;
+ 
++  private $dangerousOverrideID;
++  private $dangerousOverrideTimeStamp;
++
+   /**
+    *  Build an empty object.
+    *
+@@ -210,6 +213,30 @@
+   }
+ 
+ 
++/* -(  Shooting Yourself in the Foot   )------------------------------------- */
++
++  /*
++   * Both of these "dangerous" methods are for overriding when objects
++   * are created/changed and what their IDs are.  This is intended for
++   * (A) writing import scripts from other systems (B) setting up test
++   * scenarios.
++   *
++   * They are dangerous and there is little safety to keep you from
++   * wrecking an install.  There is no guarantee that future versions
++   * of Phabricator will not place logical constraints on the ordering
++   * of timestamps and bad things may happen if you create impossible scenarios.
++   */
++  public function setDangerousOverrideID($id) {
++    $this->dangerousOverrideID = $id;
++    return $this;
++  }
++
++  public function setDangerousOverrideTimeStamp($ts) {
++    $this->dangerousOverrideTimeStamp = $ts;
++    return $this;
++  }
++
++
+ /* -(  Managing Connections  )----------------------------------------------- */
+ 
+ 
+@@ -1155,23 +1182,28 @@
+     $data = $this->getAllLiskPropertyValues();
+ 
+     $conn = $this->establishConnection('w');
+-
+     $id_mechanism = $this->getConfigOption(self::CONFIG_IDS);
+     switch ($id_mechanism) {
+       case self::IDS_AUTOINCREMENT:
+         // If we are using autoincrement IDs, let MySQL assign the value for the
+         // ID column, if it is empty. If the caller has explicitly provided a
+         // value, use it.
+         $id_key = $this->getIDKeyForUse();
+-        if (empty($data[$id_key])) {
++        if (isset($this->dangerousOverrideID)) {
++          $this->setID($this->dangerousOverrideID);
++          $data[$id_key] = $this->dangerousOverrideID;
++        } else if (empty($data[$id_key])) {
+           unset($data[$id_key]);
+         }
+         break;
+       case self::IDS_COUNTER:
+         // If we are using counter IDs, assign a new ID if we don't already have
+         // one.
+         $id_key = $this->getIDKeyForUse();
+-        if (empty($data[$id_key])) {
++        if (isset($this->dangerousOverrideID)) {
++          $this->setID($this->dangerousOverrideID);
++          $data[$id_key] = $this->dangerousOverrideID;
++        } else if (empty($data[$id_key])) {
+           $counter_name = $this->getTableName();
+           $id = self::loadNextCounterID($conn, $counter_name);
+           $this->setID($id);
+@@ -1327,10 +1359,15 @@
+     $use_timestamps = $this->getConfigOption(self::CONFIG_TIMESTAMPS);
+ 
+     if ($use_timestamps) {
+-      if (!$this->getDateCreated()) {
+-        $this->setDateCreated(time());
++      if (isset($this->dangerousOverrideTimeStamp)) {
++        $this->setDateCreated($this->dangerousOverrideTimeStamp);
++        $this->setDateModified($this->dangerousOverrideTimeStamp);
++      } else {
++        if (!$this->getDateCreated()) {
++          $this->setDateCreated(time());
++        }
++        $this->setDateModified(time());
+       }
+-      $this->setDateModified(time());
+     }
+ 
+     if ($this->getConfigOption(self::CONFIG_AUX_PHID) && !$this->getPHID()) {
+

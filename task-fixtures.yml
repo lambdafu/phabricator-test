@@ -7,8 +7,13 @@
 
 - name: copy fixtures
   synchronize:
-    src: fixtures
-    dest: "{{phab_home}}"
+    src: "{{fixtures}}/"
+    dest: "{{phab_home}}/fixtures"
+
+- name: patch phabricator
+  become_user: "{{daemon_user}}"
+  patch: basedir={{phab}} strip=1 src=D10754.diff
+  notify: restart phabricator
 
 - name: set up users
   become_user: "{{daemon_user}}"
