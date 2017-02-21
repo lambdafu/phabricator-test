@@ -128,7 +128,8 @@ function create_change($task, $change, $task_obj) {
 		$owner = getUserByName($value);
 		$value = $owner->getPHID();
 	} else if ($typename == 'add_project') {
-		$value = array('=' => getProjectById($value)->getPHID());
+		$phid = getProjectById($value)->getPHID();
+		$value = array('+' => array($phid => $phid));
 	} else if ($typename == 'priority') {
 		$value = $k2p[$value];
 	}
