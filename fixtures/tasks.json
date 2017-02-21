@@ -6,6 +6,7 @@
       "title": "Test-Title 1 Wäh",
       "priority": "unbreak",
       "description": "This is fundamentally broken, I can't work!",
+			"projects": [ "3", "14" ],
       "changes": [
 	  { "ts": 1305028377,
 	    "author": "marcus",
@@ -17,7 +18,7 @@
 	    "type": "status",
 	    "value": "wontfix"
 	  },
-	  { "ts": 1306028377,
+		{ "ts": 1306028377,
 	    "author": "marcus",
 	    "type": "description",
 	    "value": "admin is a fool"
@@ -35,6 +36,11 @@
 	    "author": "marcus",
 	    "type": "owner",
 	    "value": "admin"
+	  },
+	  { "ts": 1456164428,
+	    "author": "marcus",
+	    "type": "add_project",
+	    "value": "13"
 	  },
 	  { "ts": 1457164428,
 	    "author": "marcus",
