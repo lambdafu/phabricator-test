@@ -1,0 +1,33 @@
+#!/usr/bin/env php
+<?php
+
+$root = dirname(dirname(__FILE__));
+require_once $root.'/phabricator/scripts/__init_script__.php';
+
+# Main
+
+if ($argc < 2) {
+	echo pht(
+		"Usage: %s\n",
+		'import-files <files>');
+	exit(1);
+}
+
+for($arg = 1; $arg < $argc; $arg++) {
+	$path = $argv[$arg];
+	$contents = file_get_contents($path, true);
+	$filename = basename($path);
+
+  $viewer = id(PhabricatorUser::getOmnipotentUser());
+	$file = PhabricatorFile::newFromFileData(
+		$contents,
+		array(
+			'name' => $filename,
+			'authorPHID' => $viewer->getPHID(),
+			'viewPolicy' => "",
+			'canCDN' => true,
+			'isExplicitUpload' => true,
+		));
+
+	echo pht("upload %s: %s",$filename,$file->getPHID());
+}

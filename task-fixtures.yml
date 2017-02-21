@@ -23,6 +23,14 @@
 
 - debug: var=importusers.stdout_lines
 
+- name: set up projects
+  become_user: "{{daemon_user}}"
+  command: chdir={{phab_home}} php ./bin/import-projects fixtures/projects.json
+  notify: restart phabricator
+  register: importprojects
+
+- debug: var=importprojects.stdout_lines
+
 - name: set up tasks
   become_user: "{{daemon_user}}"
   command: chdir={{phab_home}} php ./bin/import-tasks fixtures/tasks.json
@@ -30,3 +38,11 @@
   register: importtasks
 
 - debug: var=importtasks.stdout_lines
+
+- name: set up files
+  become_user: "{{daemon_user}}"
+  shell: chdir={{phab_home}} php ./bin/import-files fixtures/files/*
+  notify: restart phabricator
+  register: importfiles
+
+- debug: var=importfiles.stdout_lines
