@@ -17,7 +17,13 @@
 				"type": "status",
 				"value": "wontfix"
 			},
-			{ "ts": 1306028377,
+			{ "ts": 1456164528,
+				"author": "marcus",
+				"type": "parent",
+				"method": "+",
+				"value": ["2"]
+			},
+			{ "ts": 1456174628,
 				"author": "marcus",
 				"type": "description",
 				"value": "admin is a fool"

@@ -22,14 +22,16 @@ const TRANSACTION_TYPES = [
 	'description' =>  ManiphestTransaction::TYPE_DESCRIPTION,
 	'owner' => ManiphestTransaction::TYPE_OWNER,
 	'status' => ManiphestTransaction::TYPE_STATUS,
-	'priority' =>  ManiphestTransaction::TYPE_PRIORITY,
-	'add_comment' =>  PhabricatorTransactions::TYPE_COMMENT,
-	'add_member' =>  PhabricatorTransactions::TYPE_SUBSCRIBERS,
-	'project' =>  PhabricatorTransactions::TYPE_EDGE
+	'priority' => ManiphestTransaction::TYPE_PRIORITY,
+	'add_comment' => PhabricatorTransactions::TYPE_COMMENT,
+	'add_member' => PhabricatorTransactions::TYPE_SUBSCRIBERS,
+	'project' => PhabricatorTransactions::TYPE_EDGE,
+	'parent' =>  PhabricatorTransactions::TYPE_EDGE,
 ];
 
 const TRANSACTION_EDGE_TYPES = [
-	'project' => PhabricatorProjectObjectHasProjectEdgeType::EDGECONST
+	'project' => PhabricatorProjectObjectHasProjectEdgeType::EDGECONST,
+	'parent' => ManiphestTaskDependsOnTaskEdgeType::EDGECONST
 ];
 
 # Main
@@ -45,12 +47,24 @@ $jsonfile = $argv[1];
 $json = file_get_contents($jsonfile, true);
 $data = json_decode($json);
 
+# Ass. array $task, $change.
+$all_changes = array();
 foreach($data as $task) {
 	create_task((array)$task);
 }
 
+# Afterwards, we create changes, because adding task relationships
+# requires the task to exist.
+usort($all_changes, function ($item1, $item2) {
+    return $item1['change']['ts'] <=> $item2['change']['ts'];
+});
+foreach($all_changes as $change) {
+	create_change($change['task'], $change['change']);
+}
+
 function create_task($task) {
 	global $k2p;
+	global $all_changes;
 
 	$id = $task['id'];
 	$ts = $task['ts'];
@@ -104,15 +118,17 @@ function create_task($task) {
 
 	if (isset($task['changes'])) {
 		foreach($task['changes'] as $change) {
-			create_change($task, (array)$change, $task_obj);
+			$all_changes[] = ['task' => $task, 'change' => (array)$change ];
 		}
 	}
 
 	echo pht('imported: %s', $id)."\n";
 }
 
-function create_change($task, $change, $task_obj) {
+function create_change($task, $change) {
 	global $k2p;
+
+	$task_obj = getTaskById($task['id']);
 
 	$ts = $change['ts'];
 	$author = getUserByName($change['author']);
@@ -120,7 +136,7 @@ function create_change($task, $change, $task_obj) {
 	$type = TRANSACTION_TYPES[$typename];
 	$value = $change['value'];
 
-	echo pht("change: %s", $typename)."\n";
+	echo pht("change: %s: %s: %s", $task['id'], $ts, $typename)."\n";
 
 	# Reinterpret value according to type.
 
@@ -128,8 +144,25 @@ function create_change($task, $change, $task_obj) {
 		$owner = getUserByName($value);
 		$value = $owner->getPHID();
 	} else if ($typename == 'project') {
-		$phid = getProjectById($value)->getPHID();
+		if (gettype($value) != "array") {
+			$value = [$value];
+		}
+		$phids = array();
+		foreach ($value as $pname) {
+			$phid = getProjectByName($pname)->getPHID();
+			$phids[$phid] = $phid;
+		}
 		$value = array($change['method'] => array($phid => $phid));
+	} else if ($typename == 'parent') {
+		if (gettype($value) != "array") {
+			$value = [$value];
+		}
+		$phids = array();
+		foreach ($value as $tid) {
+			$phid = getTaskById($tid)->getPHID();
+			$phids[$phid] = $phid;
+		}
+		$value = array($change['method'] => $phids);
 	} else if ($typename == 'priority') {
 		$value = $k2p[$value];
 	}
@@ -166,15 +199,25 @@ function create_change($task, $change, $task_obj) {
 		->setContinueOnMissingFields(true)
 		->applyTransactions($task_obj, $transactions);
 	$task_obj->saveTransaction();
-
 }
 
-function getProjectById($id) {
-	$project = id(new PhabricatorProject())
-		->loadOneWhere('name = %s',$id);
+function getTaskById($id) {
+	$project = id(new ManiphestTask())
+		->loadOneWhere('id = %s',$id);
 
 	if(!$project) {
-		throw new Exception(sprintf("Project w/ name '%s' not found", $id));
+		throw new Exception(sprintf("Task w/ id '%d' not found", $id));
+	}
+
+	return $project;
+}
+
+function getProjectByName($name) {
+	$project = id(new PhabricatorProject())
+		->loadOneWhere('name = %s',$name);
+
+	if(!$project) {
+		throw new Exception(sprintf("Project w/ name '%s' not found", $name));
 	}
 
 	return $project;
