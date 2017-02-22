@@ -38,13 +38,21 @@
 			},
 			{ "ts": 1456164428,
 				"author": "marcus",
-				"type": "add_project",
-				"value": "14"
+				"type": "project",
+				"method": "+",
+				"value": "forwardport"
 			},
 			{ "ts": 1456164428,
 				"author": "marcus",
-				"type": "add_project",
-				"value": "3"
+				"type": "project",
+				"method": "+",
+				"value": "backport"
+			},
+			{ "ts": 1456164428,
+				"author": "marcus",
+				"type": "project",
+				"method": "-",
+				"value": "forwardport"
 			},
 			{ "ts": 1457164428,
 				"author": "marcus",

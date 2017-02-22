@@ -25,11 +25,11 @@ const TRANSACTION_TYPES = [
 	'priority' =>  ManiphestTransaction::TYPE_PRIORITY,
 	'add_comment' =>  PhabricatorTransactions::TYPE_COMMENT,
 	'add_member' =>  PhabricatorTransactions::TYPE_SUBSCRIBERS,
-	'add_project' =>  PhabricatorTransactions::TYPE_EDGE
+	'project' =>  PhabricatorTransactions::TYPE_EDGE
 ];
 
 const TRANSACTION_EDGE_TYPES = [
-	'add_project' => PhabricatorProjectObjectHasProjectEdgeType::EDGECONST
+	'project' => PhabricatorProjectObjectHasProjectEdgeType::EDGECONST
 ];
 
 # Main
@@ -127,9 +127,9 @@ function create_change($task, $change, $task_obj) {
 	if ($typename == 'owner') {
 		$owner = getUserByName($value);
 		$value = $owner->getPHID();
-	} else if ($typename == 'add_project') {
+	} else if ($typename == 'project') {
 		$phid = getProjectById($value)->getPHID();
-		$value = array('+' => array($phid => $phid));
+		$value = array($change['method'] => array($phid => $phid));
 	} else if ($typename == 'priority') {
 		$value = $k2p[$value];
 	}
@@ -171,10 +171,10 @@ function create_change($task, $change, $task_obj) {
 
 function getProjectById($id) {
 	$project = id(new PhabricatorProject())
-		->loadOneWhere('id = %s',$id);
+		->loadOneWhere('name = %s',$id);
 
 	if(!$project) {
-		throw new Exception(sprintf("Project w/ id '%d' not found", $id));
+		throw new Exception(sprintf("Project w/ name '%s' not found", $id));
 	}
 
 	return $project;
