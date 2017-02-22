@@ -1,287 +1,233 @@
 [
 	{ "id": "1",
-		"name": "agent",
-		"ts": "0",
-		"author": "admin"
+		"name": "agent"
 	},
 	{ "id": "2",
 		"name": "asm",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "3",
 		"name": "backport",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "4",
 		"name": "clangbug",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "5",
 		"name": "cross",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "6",
 		"name": "debian",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "7",
-		"name": "dirmngr",
-		"ts": "0",
-		"author": "admin"
+		"name": "dirmngr"
 	},
 	{ "id": "8",
-		"name": "doc",
-		"ts": "0",
-		"author": "admin"
+		"name": "doc"
 	},
 	{ "id": "9",
 		"name": "dup",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "10",
 		"name": "endoflife",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "11",
 		"name": "eol",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "12",
 		"name": "faq",
-		"ts": "0",
-		"author": "admin"
+		"icon": "group",
+		"color": "yellow"
 	},
 	{ "id": "13",
 		"name": "fedora",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "14",
 		"name": "forwardport",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "15",
-		"name": "gpg14",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpg14"
 	},
 	{ "id": "16",
-		"name": "gpg20",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpg20"
 	},
 	{ "id": "17",
-		"name": "gpg21",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpg21"
 	},
 	{ "id": "18",
-		"name": "gpg22",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpg22"
 	},
 	{ "id": "19",
-		"name": "gpg23",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpg23"
 	},
 	{ "id": "20",
-		"name": "gpg4win",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpg4win"
 	},
 	{ "id": "21",
-		"name": "gpgol-addin",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpgol-addin"
 	},
 	{ "id": "22",
-		"name": "gpgtar",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpgtar"
 	},
 	{ "id": "23",
-		"name": "gpgv",
-		"ts": "0",
-		"author": "admin"
+		"name": "gpgv"
 	},
 	{ "id": "24",
-		"name": "i18n",
-		"ts": "0",
-		"author": "admin"
+		"name": "i18n"
 	},
 	{ "id": "25",
-		"name": "iobuf",
-		"ts": "0",
-		"author": "admin"
+		"name": "iobuf"
 	},
 	{ "id": "26",
-		"name": "ipc",
-		"ts": "0",
-		"author": "admin"
+		"name": "ipc"
 	},
 	{ "id": "27",
-		"name": "isc13",
-		"ts": "0",
-		"author": "admin"
+		"name": "isc13"
 	},
 	{ "id": "28",
-		"name": "keyserver",
-		"ts": "0",
-		"author": "admin"
+		"name": "keyserver"
 	},
 	{ "id": "29",
-		"name": "kks",
-		"ts": "0",
-		"author": "admin"
+		"name": "kks"
 	},
 	{ "id": "30",
-		"name": "kleopatra",
-		"ts": "0",
-		"author": "admin"
+		"name": "kleopatra"
 	},
 	{ "id": "31",
 		"name": "macos",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "32",
 		"name": "maybe",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "33",
 		"name": "mistaken",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "34",
 		"name": "nobug",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "35",
 		"name": "noinfo",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "36",
 		"name": "notdup",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "37",
-		"name": "npth",
-		"ts": "0",
-		"author": "admin"
+		"name": "npth"
 	},
 	{ "id": "38",
-		"name": "openpgp",
-		"ts": "0",
-		"author": "admin"
+		"name": "openpgp"
 	},
 	{ "id": "39",
 		"name": "patch",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "40",
-		"name": "pinentry",
-		"ts": "0",
-		"author": "admin"
+		"name": "pinentry"
 	},
 	{ "id": "41",
 		"name": "python",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "42",
 		"name": "qt",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "43",
 		"name": "question",
-		"ts": "0",
-		"author": "admin"
+		"icon": "group",
+		"color": "yellow"
 	},
 	{ "id": "44",
 		"name": "rc",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "45",
 		"name": "scd",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "46",
 		"name": "sillyUB",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "47",
-		"name": "smime",
-		"ts": "0",
-		"author": "admin"
+		"name": "smime"
 	},
 	{ "id": "48",
 		"name": "spam",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "49",
-		"name": "ssh",
-		"ts": "0",
-		"author": "admin"
+		"name": "ssh"
 	},
 	{ "id": "50",
 		"name": "tests",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "51",
-		"name": "tofu",
-		"ts": "0",
-		"author": "admin"
+		"name": "tofu"
 	},
 	{ "id": "52",
 		"name": "tooold",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "53",
-		"name": "uiserver",
-		"ts": "0",
-		"author": "admin"
+		"name": "uiserver"
 	},
 	{ "id": "54",
 		"name": "w32",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "55",
 		"name": "w64",
-		"ts": "0",
-		"author": "admin"
+		"icon": "tag",
+		"color": "indigo"
 	},
 	{ "id": "56",
 		"name": "wontfix",
-		"ts": "0",
-		"author": "admin"
+		"icon": "cleanup",
+		"color": "grey"
 	},
 	{ "id": "57",
-		"name": "yubikey",
-		"ts": "0",
-		"author": "admin"
+		"name": "yubikey"
 	}
 ]

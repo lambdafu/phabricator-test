@@ -21,83 +21,86 @@ foreach($data as $project) {
 	create_project((array)$project);
 }
 
-function create_project($project) {
-	$id = $project['id'];
-	$name = $project['name'];
-	$author = null;
-
-	if(array_key_exists("author",$project)) {
-		$authorname = $project['author'];
-		$author = id(new PhabricatorUser())
-			->loadOneWhere('username = %s', $authorname);
-		if (!$author) {
-			echo pht("error: %s: %s: %s", $id, "author not found", $authorname)."\n";
-			return;
-		}
-	} else {
-		$author = id(PhabricatorUser::getOmnipotentUser());
+function lookup_user($obj, $key)
+{
+	$username = "admin";
+	if (array_key_exists($key, $obj)) {
+		$username = $obj[$key];
 	}
+	$user = id(new PhabricatorUser())
+		->loadOneWhere('username = %s', $username);
+	if (!$user) {
+		echo pht("error: %s not found: %s", $key, "not found", $username)."\n";
+		return;
+	}
+	return $user;
+}
 
-	echo pht("importing: %s", $id)."\n";
-
-	# Destroy old.
-
+function destroy_project($id)
+{
 	$object = id(new PhabricatorProject())
 		->loadOneWhere('id = %s',$id);
 
 	if($object) {
 		echo pht("Destroying **%s**...\n",get_class($object));
-
 		id(new PhabricatorDestructionEngine())
 			->destroyObject($object);
 	}
+}
+
+function create_project($project) {
+	$id = $project['id'];
+	$name = $project['name'];
+
+	echo pht("importing: %s", $id)."\n";
+  $author = lookup_user($project, "author");
+
+	# Destroy old.
+  destroy_project($id);
 
 	# Create new.
-    $project = PhabricatorProject::initializeNewProject($author)
-			->setAuthorPHID($author->getPHID())
+	$obj = PhabricatorProject::initializeNewProject($author)
 			->setDangerousOverrideID($id);
+	if(array_key_exists('ts', $project)) {
+		$obj->setDangerousOverrideTimeStamp($project['ts']);
+	}
+	if(array_key_exists('name', $project)) {
+		$obj->setName($project['name']);
+	}
+	if(array_key_exists('icon', $project)) {
+		$obj->setIcon($project['icon']);
+	}
+  if(array_key_exists('color', $project)) {
+		$obj->setColor($project['color']);
+	}
 
-		if(array_key_exists('ts',$project)) {
-			$ts = $project['ts'];
-			$project->setDangerousOverrideTimeStamp($ts);
-		}
+  // By saving the object in a transaction instead of $obj->save(),
+	// a default image is automatically generated.
 
-    $xactions = array();
-    $xactions[] = id(new PhabricatorProjectTransaction())
-      ->setTransactionType(PhabricatorProjectTransaction::TYPE_NAME)
-      ->setNewValue($name);
-    /*if ($request->getValue('icon')) {
-      $xactions[] = id(new PhabricatorProjectTransaction())
-        ->setTransactionType(PhabricatorProjectTransaction::TYPE_ICON)
-        ->setNewValue($request->getValue('icon'));
-    }
-    if ($request->getValue('color')) {
-      $xactions[] = id(new PhabricatorProjectTransaction())
-        ->setTransactionType(PhabricatorProjectTransaction::TYPE_COLOR)
-        ->setNewValue($request->getValue('color'));
-    }
-    if ($request->getValue('tags')) {
-      $xactions[] = id(new PhabricatorProjectTransaction())
-        ->setTransactionType(PhabricatorProjectTransaction::TYPE_SLUGS)
-        ->setNewValue($request->getValue('tags'));
-		}
-    $xactions[] = id(new PhabricatorProjectTransaction())
-      ->setTransactionType(PhabricatorTransactions::TYPE_EDGE)
-      ->setMetadataValue(
-        'edge:type',
-        PhabricatorProjectProjectHasMemberEdgeType::EDGECONST)
-      ->setNewValue(
-        array(
-          '+' => array_fuse($members),
-				));*/
-    $content_source = PhabricatorContentSource::newForSource(
-        PhabricatorConsoleContentSource::SOURCECONST);
-    $editor = id(new PhabricatorProjectTransactionEditor())
-      ->setActor($author)
-      //->setContinueOnNoEffect(true)
-			->setContentSource($content_source);
-		$editor->applyTransactions($project, $xactions);
+  $xactions = array();
 
+  //  $xactions[] = id(new PhabricatorProjectTransaction());
+  //   if ($request->getValue('tags')) {
+  //     $xactions[] = id(new PhabricatorProjectTransaction())
+  //       ->setTransactionType(PhabricatorProjectTransaction::TYPE_SLUGS)
+  //       ->setNewValue($request->getValue('tags'));
+	// 	}
+  //   $xactions[] = id(new PhabricatorProjectTransaction())
+  //     ->setTransactionType(PhabricatorTransactions::TYPE_EDGE)
+  //     ->setMetadataValue(
+  //       'edge:type',
+  //       PhabricatorProjectProjectHasMemberEdgeType::EDGECONST)
+  //     ->setNewValue(
+  //       array(
+  //         '+' => array_fuse($members),
+	// 			));*/
+  $content_source = PhabricatorContentSource::newForSource(
+		PhabricatorConsoleContentSource::SOURCECONST);
+	$editor = id(new PhabricatorProjectTransactionEditor())
+		->setActor($author)
+		->setContinueOnNoEffect(true)
+		->setContentSource($content_source);
+	$editor->applyTransactions($obj, $xactions);
 
 	echo pht('imported: %s', $id)."\n";
 }
