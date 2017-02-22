@@ -26,7 +26,9 @@ vagrant ssh -c "/opt/phacility/phabricator/bin/auth recover admin"
 Replay Data
 ===========
 
+```
 vagrant provision --provision-with init
+```
 
 TODO
 ====
