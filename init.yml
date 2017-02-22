@@ -1,0 +1,11 @@
+---
+- hosts: all
+  become: true
+
+  vars:
+    phab_home: /opt/phacility
+    phab: "{{phab_home}}/phabricator"
+    daemon_user: phd
+    fixtures: "fixtures"
+  tasks:
+  - include: task-fixtures.yml

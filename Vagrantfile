@@ -8,9 +8,15 @@ Vagrant::Config.run do |config|
   # computers to access the VM, whereas host only networking does not.
   config.vm.forward_port 80, 8080
 
-  config.vm.provision "ansible" do |ansible|
+  config.vm.provision "deploy", type: "ansible" do |ansible|
     ansible.verbose = "v"
-    ansible.playbook = "playbook.yml"
+    ansible.playbook = "deploy.yml"
+    ansible.raw_arguments = ["-e", "ansible_python_interpreter=/usr/bin/python3"]
+  end
+
+  config.vm.provision "init", type: "ansible" do |ansible|
+    ansible.verbose = "v"
+    ansible.playbook = "init.yml"
     ansible.raw_arguments = ["-e", "ansible_python_interpreter=/usr/bin/python3"]
   end
 

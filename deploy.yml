@@ -19,17 +19,15 @@
     imagemagick: "true"
     youtube: "true"
     test_plan: "true"
-    fixtures: "fixtures"
 
   tasks:
-    #  - include: task-deps.yml
-    #  - include: task-users.yml
-    #  - include: task-source.yml
-    #  - include: task-mysql.yml
-    #  - include: task-nginx.yml
-    #  - include: task-php.yml
-    #  - include: task-phabricator.yml
-  - include: task-fixtures.yml
+  - include: task-deps.yml
+  - include: task-users.yml
+  - include: task-source.yml
+  - include: task-mysql.yml
+  - include: task-nginx.yml
+  - include: task-php.yml
+  - include: task-phabricator.yml
 
   handlers:
   - name: restart mysql
@@ -40,6 +38,6 @@
 
   - name: restart fpm
     service: name=php7.1-fpm state=restarted
-    
+
   - name: restart phabricator
     systemd: name=phabricator-phd daemon_reload=yes state=restarted
