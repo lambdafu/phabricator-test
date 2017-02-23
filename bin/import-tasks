@@ -27,11 +27,12 @@ const TRANSACTION_TYPES = [
 	'add_member' => PhabricatorTransactions::TYPE_SUBSCRIBERS,
 	'project' => PhabricatorTransactions::TYPE_EDGE,
 	'parent' =>  PhabricatorTransactions::TYPE_EDGE,
+	'due-date' => PhabricatorTransactions::TYPE_CUSTOMFIELD
 ];
 
 const TRANSACTION_EDGE_TYPES = [
 	'project' => PhabricatorProjectObjectHasProjectEdgeType::EDGECONST,
-	'parent' => ManiphestTaskDependsOnTaskEdgeType::EDGECONST
+	'parent' => ManiphestTaskDependedOnByTaskEdgeType::EDGECONST
 ];
 
 # Main
@@ -138,8 +139,11 @@ function create_change($task, $change) {
 
 	echo pht("change: %s: %s: %s", $task['id'], $ts, $typename)."\n";
 
-	# Reinterpret value according to type.
+	$action = id(new ManiphestTransaction())
+		->setTransactionType($type)
+		->setDangerousOverrideTimeStamp($ts);
 
+	# Reinterpret value according to type.
 	if ($typename == 'owner') {
 		$owner = getUserByName($value);
 		$value = $owner->getPHID();
@@ -165,11 +169,18 @@ function create_change($task, $change) {
 		$value = array($change['method'] => $phids);
 	} else if ($typename == 'priority') {
 		$value = $k2p[$value];
+	} else if ($typename == 'due-date') {
+		$field_list = PhabricatorCustomField::getObjectFields(
+			$task_obj,
+			PhabricatorCustomField::ROLE_EDIT);
+			$field_list->readFieldsFromStorage($task_obj);
+			$fields = $field_list->getFields();
+			$action->setMetadataValue('customfield:key',
+				'std:maniphest:semantics.due-date');
+			$oldvalue = $fields['std:maniphest:semantics.due-date']
+				->getOldValueForApplicationTransactions();
+			$action->setOldValue($oldvalue);
 	}
-
-	$action = id(new ManiphestTransaction())
-		->setTransactionType($type)
-		->setDangerousOverrideTimeStamp($ts);
 
 	# Type depend fixups
 	if (array_key_exists($typename,TRANSACTION_EDGE_TYPES)) {
