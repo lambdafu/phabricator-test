@@ -20,7 +20,7 @@
     section: mysqld
     option: innodb_buffer_pool_size
     # FIXME: Use 40% of system RAM here.
-    value: 512M
+    value: 128M
   notify: restart mysql
 
 # Get credentials for later.
