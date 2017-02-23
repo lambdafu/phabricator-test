@@ -30,10 +30,15 @@
     owner: www-data
     group: www-data
 
+- name: patch phabricator
+  become_user: "{{daemon_user}}"
+  patch: basedir={{phab}} strip=1 src=D10754.diff
+  notify:
+  - restart phabricator
+  - restart fpm
 
 - name: install phabricator systemd unit file
   template:
     src: etc/systemd/system/phabricator-phd.service.j2
     dest: /etc/systemd/system/phabricator-phd.service
-  notify:
-    - restart phabricator
+  notify: restart phabricator

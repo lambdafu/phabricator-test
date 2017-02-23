@@ -7,5 +7,6 @@
     phab: "{{phab_home}}/phabricator"
     daemon_user: phd
     fixtures: "fixtures"
+
   tasks:
   - include: task-fixtures.yml
