@@ -1,7 +1,76 @@
+diff --git a/src/applications/maniphest/editor/ManiphestTransactionEditor.php b/src/applications/maniphest/editor/ManiphestTransactionEditor.php
+index 0a4ea84..dd1567b 100644
+--- a/src/applications/maniphest/editor/ManiphestTransactionEditor.php
++++ b/src/applications/maniphest/editor/ManiphestTransactionEditor.php
+@@ -219,6 +219,7 @@ final class ManiphestTransactionEditor
+ 
+         id(new PhabricatorEdgeEditor())
+           ->addEdge($parent_phid, $parent_type, $task_phid)
++	  ->setDangerousOverrideTimeStamp($xaction->getDangerousOverrideTimeStamp())
+           ->save();
+         break;
+       case PhabricatorTransactions::TYPE_COLUMNS:
+@@ -266,6 +267,7 @@ final class ManiphestTransactionEditor
+         foreach ($blocked_tasks as $blocked_task) {
+           $parent_xaction = id(new ManiphestTransaction())
+             ->setTransactionType(ManiphestTransaction::TYPE_UNBLOCK)
++	    ->setDangerousOverrideTimeStamp($unblock_xaction->getDangerousOverrideTimeStamp())
+             ->setOldValue(array($object->getPHID() => $old))
+             ->setNewValue(array($object->getPHID() => $new));
+ 
+diff --git a/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php b/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
+index 5851e01..9099b8e 100644
+--- a/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
++++ b/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
+@@ -2394,9 +2394,11 @@ abstract class PhabricatorApplicationTransactionEditor
+     }
+ 
+     $should_cc = false;
++    $override_ts = null;
+     foreach ($xactions as $xaction) {
+       if ($this->shouldImplyCC($object, $xaction)) {
+         $should_cc = true;
++	$override_ts = $xaction->getDangerousOverrideTimeStamp();
+         break;
+       }
+     }
+@@ -2426,7 +2428,9 @@ abstract class PhabricatorApplicationTransactionEditor
+     $xaction = newv(get_class(head($xactions)), array());
+     $xaction->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS);
+     $xaction->setNewValue(array('+' => array($actor_phid)));
+-
++    if ($override_ts !== null) {
++      $xaction->setDangerousOverrideTimeStamp($override_ts);
++    }
+     array_unshift($xactions, $xaction);
+ 
+     return $xactions;
+@@ -3045,10 +3049,11 @@ abstract class PhabricatorApplicationTransactionEditor
+     $story_type = $this->getFeedStoryType();
+     $story_data = $this->getFeedStoryData($object, $xactions);
+ 
++    $xaction = $xactions[array_keys($xactions)[0]];
+     id(new PhabricatorFeedStoryPublisher())
+       ->setStoryType($story_type)
+       ->setStoryData($story_data)
+-      ->setStoryTime(time())
++      ->setStoryTime($xaction->getDateCreated())
+       ->setStoryAuthorPHID($this->getActingAsPHID())
+       ->setRelatedPHIDs($related_phids)
+       ->setPrimaryObjectPHID($object->getPHID())
+@@ -3317,6 +3322,7 @@ abstract class PhabricatorApplicationTransactionEditor
+       $template
+         ->setTransactionType($xaction->getTransactionType())
+         ->setMetadataValue('edge:type', $inverse_type)
++	->setDangerousOverrideTimeStamp($xaction->getDangerousOverrideTimeStamp())
+         ->setNewValue(
+           array(
+             $edge_edit_type => array($object->getPHID() => $object->getPHID()),
 diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/storage/lisk/LiskDAO.php
+index 0527c3c..04dd6c8 100644
 --- a/src/infrastructure/storage/lisk/LiskDAO.php
 +++ b/src/infrastructure/storage/lisk/LiskDAO.php
-@@ -197,6 +197,9 @@
+@@ -199,6 +199,9 @@ abstract class LiskDAO extends Phobject {
    protected $dateCreated;
    protected $dateModified;
  
@@ -11,7 +80,7 @@ diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/st
    /**
     *  Build an empty object.
     *
-@@ -210,6 +213,30 @@
+@@ -212,6 +215,38 @@ abstract class LiskDAO extends Phobject {
    }
  
  
@@ -38,11 +107,19 @@ diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/st
 +    return $this;
 +  }
 +
++  public function getDangerousOverrideTimeStamp() {
++    if (isset($this->dangerousOverrideTimeStamp)) {
++      return $this->dangerousOverrideTimeStamp;
++    } else {
++      return null;
++    }
++  }
++
 +
  /* -(  Managing Connections  )----------------------------------------------- */
  
  
-@@ -1155,23 +1182,28 @@
+@@ -1200,7 +1235,6 @@ abstract class LiskDAO extends Phobject {
      $data = $this->getAllLiskPropertyValues();
  
      $conn = $this->establishConnection('w');
@@ -50,7 +127,7 @@ diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/st
      $id_mechanism = $this->getConfigOption(self::CONFIG_IDS);
      switch ($id_mechanism) {
        case self::IDS_AUTOINCREMENT:
-         // If we are using autoincrement IDs, let MySQL assign the value for the
+@@ -1208,7 +1242,10 @@ abstract class LiskDAO extends Phobject {
          // ID column, if it is empty. If the caller has explicitly provided a
          // value, use it.
          $id_key = $this->getIDKeyForUse();
@@ -62,7 +139,7 @@ diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/st
            unset($data[$id_key]);
          }
          break;
-       case self::IDS_COUNTER:
+@@ -1216,7 +1253,10 @@ abstract class LiskDAO extends Phobject {
          // If we are using counter IDs, assign a new ID if we don't already have
          // one.
          $id_key = $this->getIDKeyForUse();
@@ -72,9 +149,9 @@ diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/st
 +          $data[$id_key] = $this->dangerousOverrideID;
 +        } else if (empty($data[$id_key])) {
            $counter_name = $this->getTableName();
-           $id = self::loadNextCounterID($conn, $counter_name);
+           $id = self::loadNextCounterValue($conn, $counter_name);
            $this->setID($id);
-@@ -1327,10 +1359,15 @@
+@@ -1377,10 +1417,15 @@ abstract class LiskDAO extends Phobject {
      $use_timestamps = $this->getConfigOption(self::CONFIG_TIMESTAMPS);
  
      if ($use_timestamps) {
@@ -93,4 +170,3 @@ diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/st
      }
  
      if ($this->getConfigOption(self::CONFIG_AUX_PHID) && !$this->getPHID()) {
-
