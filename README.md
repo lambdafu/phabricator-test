@@ -30,6 +30,12 @@ Replay Data
 vagrant provision --provision-with init
 ```
 
+Tip
+===
+
+Set phabricator.silent to true during import (and maybe even switch
+mailer to test-mailer).
+
 TODO
 ====
 
