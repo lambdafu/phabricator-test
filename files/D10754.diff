@@ -1,5 +1,5 @@
 diff --git a/src/applications/maniphest/editor/ManiphestTransactionEditor.php b/src/applications/maniphest/editor/ManiphestTransactionEditor.php
-index 0a4ea84..dd1567b 100644
+index 0a4ea84..0339041 100644
 --- a/src/applications/maniphest/editor/ManiphestTransactionEditor.php
 +++ b/src/applications/maniphest/editor/ManiphestTransactionEditor.php
 @@ -219,6 +219,7 @@ final class ManiphestTransactionEditor
@@ -18,11 +18,27 @@ index 0a4ea84..dd1567b 100644
              ->setOldValue(array($object->getPHID() => $old))
              ->setNewValue(array($object->getPHID() => $new));
  
+@@ -894,6 +896,7 @@ final class ManiphestTransactionEditor
+         if ($old_value) {
+           $results[] = id(new ManiphestTransaction())
+             ->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS)
++	    ->setDangerousOverrideTimeStamp($xaction->getDangerousOverrideTimeStamp())
+             ->setIgnoreOnNoEffect(true)
+             ->setNewValue(
+               array(
 diff --git a/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php b/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
-index 5851e01..9099b8e 100644
+index 5851e01..c493d5e 100644
 --- a/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
 +++ b/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
-@@ -2394,9 +2394,11 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -1450,6 +1450,7 @@ abstract class PhabricatorApplicationTransactionEditor
+     }
+ 
+     $xaction = newv(get_class(head($xactions)), array());
++    $xaction->setDangerousOverrideTimeStamp(head($xactions)->getDangerousOverrideTimeStamp());
+     $xaction->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS);
+     $xaction->setNewValue(array('+' => $phids));
+ 
+@@ -2394,9 +2395,11 @@ abstract class PhabricatorApplicationTransactionEditor
      }
  
      $should_cc = false;
@@ -34,7 +50,7 @@ index 5851e01..9099b8e 100644
          break;
        }
      }
-@@ -2426,7 +2428,9 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -2426,7 +2429,9 @@ abstract class PhabricatorApplicationTransactionEditor
      $xaction = newv(get_class(head($xactions)), array());
      $xaction->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS);
      $xaction->setNewValue(array('+' => array($actor_phid)));
@@ -45,7 +61,7 @@ index 5851e01..9099b8e 100644
      array_unshift($xactions, $xaction);
  
      return $xactions;
-@@ -3045,10 +3049,11 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -3045,10 +3050,11 @@ abstract class PhabricatorApplicationTransactionEditor
      $story_type = $this->getFeedStoryType();
      $story_data = $this->getFeedStoryData($object, $xactions);
  
@@ -58,7 +74,7 @@ index 5851e01..9099b8e 100644
        ->setStoryAuthorPHID($this->getActingAsPHID())
        ->setRelatedPHIDs($related_phids)
        ->setPrimaryObjectPHID($object->getPHID())
-@@ -3317,6 +3322,7 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -3317,6 +3323,7 @@ abstract class PhabricatorApplicationTransactionEditor
        $template
          ->setTransactionType($xaction->getTransactionType())
          ->setMetadataValue('edge:type', $inverse_type)
