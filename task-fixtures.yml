@@ -31,7 +31,7 @@
 
 - name: set up files
   become_user: "{{daemon_user}}"
-  shell: chdir={{phab_home}} php ./bin/import-files fixtures/files/*
+  shell: chdir={{phab_home}} php ./bin/import-files fixtures/files.json fixtures/files
   register: importfiles
 
 - debug: var=importfiles.stdout_lines

@@ -6,28 +6,71 @@ require_once $root.'/phabricator/scripts/__init_script__.php';
 
 # Main
 
-if ($argc < 2) {
+if ($argc != 3) {
 	echo pht(
 		"Usage: %s\n",
-		'import-files <files>');
+		'import-files <files.json> <dir>');
 	exit(1);
 }
 
-for($arg = 1; $arg < $argc; $arg++) {
-	$path = $argv[$arg];
-	$contents = file_get_contents($path, true);
-	$filename = basename($path);
+$jsonfile = $argv[1];
+$dir = $argv[2];
+$json = file_get_contents($jsonfile, true);
+$data = json_decode($json);
 
-  $viewer = id(PhabricatorUser::getOmnipotentUser());
-	$file = PhabricatorFile::newFromFileData(
-		$contents,
-		array(
-			'name' => $filename,
-			'authorPHID' => $viewer->getPHID(),
-			'viewPolicy' => "",
-			'canCDN' => true,
-			'isExplicitUpload' => true,
-		));
+$failure = array();
 
-	echo pht("upload %s: %s",$filename,$file->getPHID());
+foreach($data as $file) {
+	create_file((array)$file, $dir);
+}
+
+echo pht("failed to upload these files:")."\n";
+foreach ($failure as $failed) {
+	echo pht("%s", $failed)."\n";
+}
+
+function create_file($file, $dir) {
+	$filename = $file['filename'];
+	$path = $dir . "/" . $filename;
+  $authorname = $file['author'];
+
+	echo pht("considering: %s ", $filename)."\n";
+
+        $check = id(new PhabricatorFile())
+		->loadAllWhere("name = %s", $filename);
+	if (sizeof($check) > 0) {
+	    echo pht("... exists: %s (%i)", $filename, sizeof($check))."\n";
+	    return;
+	}
+
+	try {
+		$contents = file_get_contents($path, true);
+		$author = getUserByName($authorname);
+		$file = PhabricatorFile::newFromFileData(
+			$contents,
+			array(
+				'name' => $filename,
+				'authorPHID' => $author->getPHID(),
+				'viewPolicy' => "",
+				'canCDN' => true,
+				'isExplicitUpload' => true,
+			));
+		echo pht("... uploaded: %s (%s)", $filename, $file->getPHID())."\n";
+	}
+	catch (Exception $e) {
+		echo pht("... failed")."\n";
+		global $failure;
+		$failure[] = $filename;
+	}
+}
+
+function getUserByName($name) {
+	$user = id(new PhabricatorUser())
+		->loadOneWhere('username = %s', $name);
+
+	if (!$user) {
+		throw new Exception(sprintf("User '%s' not found", $name));
+	}
+
+	return $user;
 }
