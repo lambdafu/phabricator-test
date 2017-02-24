@@ -57,9 +57,14 @@ foreach($data as $task) {
 
 # Afterwards, we create changes, because adding task relationships
 # requires the task to exist.
-usort($all_changes, function ($item1, $item2) {
-    return $item1['change']['ts'] <=> $item2['change']['ts'];
-});
+function mycmp($a,$b) {
+  if ($a['change']['ts']==$b['change']['ts']) {
+    return 0;
+  }
+  return ($a['change']['ts'] < $b['change']['ts']) ? -1 : 1;
+}
+
+usort($all_changes, "mycmp");
 foreach($all_changes as $change) {
 	create_change($change['task'], $change['change']);
 }
