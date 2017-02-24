@@ -24,7 +24,8 @@ const TRANSACTION_TYPES = [
 	'status' => ManiphestTransaction::TYPE_STATUS,
 	'priority' => ManiphestTransaction::TYPE_PRIORITY,
 	'add_comment' => PhabricatorTransactions::TYPE_COMMENT,
-	'add_member' => PhabricatorTransactions::TYPE_SUBSCRIBERS,
+	'attachment' => PhabricatorTransactions::TYPE_COMMENT,
+	'subscriber' => PhabricatorTransactions::TYPE_SUBSCRIBERS,
 	'project' => PhabricatorTransactions::TYPE_EDGE,
 	'parent' =>  PhabricatorTransactions::TYPE_EDGE,
 	'due-date' => PhabricatorTransactions::TYPE_CUSTOMFIELD
@@ -115,6 +116,26 @@ function create_task($task) {
 		$task_obj->setOwnerPHID($owner->getPHID());
 	}
 
+	if (isset($task['projects'])) {
+		$phids = array();
+		$projects = $task['projects'];
+		foreach ($projects as $pname) {
+			$phid = getProjectByName($pname)->getPHID();
+			$phids[$phid] = $phid;
+		}
+		$task_obj->attachProjectPHIDs($phids);
+	}
+
+	if (isset($task['subscriber'])) {
+		$phids = array();
+		$subscribers = $task['subscriber'];
+		foreach ($subscribers as $sname) {
+			$phid = getUserByName($sname)->getPHID();
+			$phids[$phid] = $phid;
+		}
+		$task_obj->attachSubscriberPHIDs($phids);
+	}
+
 	$task_obj->save();
 
 	if (isset($task['changes'])) {
@@ -157,6 +178,16 @@ function create_change($task, $change) {
 			$phids[$phid] = $phid;
 		}
 		$value = array($change['method'] => array($phid => $phid));
+	} else if ($typename == 'subscriber') {
+		if (gettype($value) != "array") {
+			$value = [$value];
+		}
+		$phids = array();
+		foreach ($value as $sname) {
+			$phid = getUserByName($sname)->getPHID();
+			$phids[$phid] = $phid;
+		}
+		$value = array($change['method'] => array($phid => $phid));
 	} else if ($typename == 'parent') {
 		if (gettype($value) != "array") {
 			$value = [$value];
@@ -180,6 +211,23 @@ function create_change($task, $change) {
 			$oldvalue = $fields['std:maniphest:semantics.due-date']
 				->getOldValueForApplicationTransactions();
 			$action->setOldValue($oldvalue);
+	} else if ($typename == 'attachment') {
+	        $file = id(new PhabricatorFile())
+			->loadAllWhere("name = %s", $value);
+		if (sizeof($file) == 0) {
+			echo pht("IGNORING ATTACHMENT: %s", $value)."\n";
+		} else {
+			foreach ($file as $k => $f) {
+				$value = "{F" . $k . "}";
+				break;
+			}
+		}
+	} else if ($typename == 'add_comment') {
+	} else if ($typename == 'status') {
+	} else if ($typename == 'title') {
+	} else if ($typename == 'description') {
+	} else {
+		echo pht("Unknown typename: " . $typename)."\n";
 	}
 
 	# Type depend fixups

@@ -65,6 +65,11 @@
 				"type": "priority",
 				"value": "normal"
 			},
+			{ "ts": 1457164428,
+				"author": "marcus",
+				"type": "attachment",
+				"value": "lenna.png"
+			},
 			{ "ts": 1458164428,
 				"author": "marcus",
 				"type": "add_comment",
