@@ -1,0 +1,9 @@
+{
+    "defect": "defect",
+    "task": "task",
+    "discussion": "discussion",
+    "deadline": "deadline",
+    "order": "order",
+    "update": "update",
+    "enhancement": "enhancement"
+}

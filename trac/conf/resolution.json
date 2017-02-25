@@ -1,0 +1,7 @@
+{
+    "invalid": "invalid",
+    "fixed": "resolved",
+    "wontfix": "wontfix",
+    "worksforme": "invalid",
+    "duplicate": "duplicate"
+}

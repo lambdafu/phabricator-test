@@ -1,0 +1,10 @@
+{
+    "*security*": "unbreak",
+    "critical": "unbreak",
+    "blocker": "unbreak",
+    "major": "high",
+    "medium": "normal",
+    "normal": "normal",
+    "minor": "low",
+    "trivial": "wish"
+}

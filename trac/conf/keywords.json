@@ -1,0 +1,7 @@
+{
+    "beginner": ["beginner"],
+    "qa": ["qa"],
+    "beginnerqa": ["beginner", "qa"],
+    "beginnre": ["beginner"],
+    "obsolete": []
+}

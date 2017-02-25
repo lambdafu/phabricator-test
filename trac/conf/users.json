@@ -1,0 +1,4 @@
+{
+    "admin": ["anonymous", "deleted-user", "spam"],
+    "marcus": ["marcus", "marcus@example.com", "macrus"]
+}
