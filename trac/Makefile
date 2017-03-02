@@ -4,7 +4,7 @@ all: out/users.json
 	python export-trac.py dump-attachments --db-file data/trac.db --attachment-dir data/attachments --server-dir out/files 
 	python export-trac.py dump-tickets --db-file data/trac.db --trac-key trac
 
-out/users.json: export-trac.py data/trac.db conf/trac-scrub.yaml
+out/users.json: export-trac.py data/trac.db
 	python export-trac.py users-dump-json --db-file data/trac.db 
 
 
