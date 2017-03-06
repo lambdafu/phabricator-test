@@ -1,0 +1,169 @@
+[
+  {
+    "id": 1,
+    "name": "Info Needed",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 2,
+    "name": "In Progress",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 3,
+    "name": "Testing",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 4,
+    "name": "Unreleased",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 5,
+    "name": "Stalled",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 6,
+    "name": "Bug Report",
+    "icon": "bug",
+    "color": "yellow"
+  },
+  {
+    "id": 7,
+    "name": "Feature Request",
+    "icon": "experimental",
+    "color": "yellow"
+  },
+  { "id": 8,
+    "name": "gpgweb",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 9,
+    "name": "trash",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 10,
+    "name": "gpgme",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 11,
+    "name": "gnupg",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 12,
+    "name": "gpa",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 13,
+    "name": "libgcrypt",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 14,
+    "name": "libksba",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 15,
+    "name": "winpt",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 16,
+    "name": "gpgol",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 17,
+    "name": "pinentry",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 18,
+    "name": "gpgex",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 19,
+    "name": "poldi",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 20,
+    "name": "scute",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 21,
+    "name": "libassuan",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 22,
+    "name": "gpg4win",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 23,
+    "name": "npth",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 24,
+    "name": "libgpg-error",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 25,
+    "name": "dirmngr",
+    "color": "blue",
+    "icon": "project"
+  },
+  { "id": 26,
+    "name": "Debian",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  { "id": 27,
+    "name": "Gentoo",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  { "id": 28,
+    "name": "Ubuntu",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  { "id": 29,
+    "name": "KDE",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  { "id": 30,
+    "name": "Arch",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  { "id": 31,
+    "name": "Fedora",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  { "id": 32,
+    "name": "FreeBSD",
+    "color": "checkered",
+    "icon": "umbrella"
+  }
+]

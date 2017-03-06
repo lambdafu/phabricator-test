@@ -1,0 +1,11 @@
+{
+  "bugs\\.debian\\.org": ["Debian"],
+  "bugs\\.gentoo\\.org": ["Gentoo"],
+  "bugs\\.launchpad\\.net": ["Ubuntu"],
+  "bugs\\.kde\\.org": ["KDE"],
+  "bugs\\.archlinux\\.org": ["Arch"],
+  "bugzilla\\.redhat\\.com": ["Fedora"],
+  "launchpad": ["Ubuntu"],
+  "freebsd": ["FreeBSD"],
+  "debian": ["Debian"]
+}

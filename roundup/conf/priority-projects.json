@@ -1,0 +1,9 @@
+{
+  "critical": ["Bug Report"],
+  "urgent": ["Bug Report"],
+  "bug": ["Bug Report"],
+  "feature": ["Feature Request"],
+  "wish": ["Feature Request"],
+  "nobug": [],
+  "minor-bug": ["Bug Report"]
+}

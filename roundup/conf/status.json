@@ -1,0 +1,12 @@
+{
+
+"unread": "open",
+"deferred": "open",
+"chatting": "open",
+"need-eg": "open",
+"in-progress": "open",
+"testing": "open",
+"done-cbb": "resolved",
+"resolved": "resolved",
+"not-released": "resolved"
+}

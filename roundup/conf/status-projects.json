@@ -1,0 +1,12 @@
+{
+
+"unread": [],
+"deferred": ["Stalled"],
+"chatting": [],
+"need-eg": ["Info Needed"],
+"in-progress": ["In Progress"],
+"testing": ["Testing"],
+"done-cbb": [],
+"resolved": [],
+"not-released": ["Unreleased"]
+}

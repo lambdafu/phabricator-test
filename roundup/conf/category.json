@@ -1,0 +1,21 @@
+{
+  "gpgweb": ["gpgweb"],
+  "trash": ["trash"],
+  "gpgme": ["gpgme"],
+  "gnupg": ["gnupg"],
+  "gpa": ["gpa"],
+  "libgcrypt": ["libgcrypt"],
+  "libksba": ["libksba"],
+  "winpt": ["winpt"],
+  "gpgol": ["gpgol"],
+  "pinentry": ["pinentry"],
+  "gpgex": ["gpgex"],
+  "poldi": ["poldi"],
+  "scute": ["scute"],
+  "libassuan": ["libassuan"],
+  "gpg4win": ["gpg4win"],
+  "npth": ["npth"],
+  "libgpg-error": ["libgpg-error"],
+  "misc": [],
+  "x-dirmngr-old": ["dirmngr"]
+}

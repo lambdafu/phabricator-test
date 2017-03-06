@@ -1,0 +1,9 @@
+{
+  "critical": "unbreak",
+  "urgent": "high",
+  "bug": "normal",
+  "feature": "normal",
+  "wish": "wishlist",
+  "nobug": "normal",
+  "minor-bug": "low"
+}
