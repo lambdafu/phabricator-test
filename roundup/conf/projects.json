@@ -47,9 +47,9 @@
     "icon": "project"
   },
   { "id": 9,
-    "name": "trash",
-    "color": "blue",
-    "icon": "project"
+    "name": "Trash",
+    "color": "yellow",
+    "icon": "cleanup"
   },
   { "id": 10,
     "name": "gpgme",
@@ -165,5 +165,263 @@
     "name": "FreeBSD",
     "color": "checkered",
     "icon": "umbrella"
+  },
+  {
+    "id": 33,
+    "name": "kks",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 34,
+    "name": "Too Old",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 35,
+    "name": "Not A Bug",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 36,
+    "name": "Won't Fix",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 37,
+    "name": "End Of Life",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 38,
+    "name": "Mistaken",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 39,
+    "name": "Duplicate",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 40,
+    "name": "patch",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 41,
+    "name": "backport",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 42,
+    "name": "forwardport",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 43,
+    "name": "FAQ",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 44,
+    "name": "Windows",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 45,
+    "name": "Windows 32",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 46,
+    "name": "MacOS",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 47,
+    "name": "Assembler",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 48,
+    "name": "IO-Buffer",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 49,
+    "name": "Cross-Compiler",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 50,
+    "name": "Keyserver",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 51,
+    "name": "scd",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 52,
+    "name": "OpenPGP",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 53,
+    "name": "gpgagent",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 54,
+    "name": "S/MIME",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 55,
+    "name": "ssh",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 56,
+    "name": "uiserver",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 57,
+    "name": "i18n",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 58,
+    "name": "gpg14",
+    "color": "green",
+    "icon": "goal"
+  },
+  {
+    "id": 59,
+    "name": "gpg20",
+    "color": "green",
+    "icon": "goal"
+  },
+  {
+    "id": 60,
+    "name": "gpg21",
+    "color": "green",
+    "icon": "goal"
+  },
+  {
+    "id": 61,
+    "name": "gpg22",
+    "color": "green",
+    "icon": "goal"
+  },
+  {
+    "id": 62,
+    "name": "gpg23",
+    "color": "green",
+    "icon": "goal"
+  },
+  {
+    "id": 63,
+    "name": "Documentation",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 64,
+    "name": "Windows 64",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 65,
+    "name": "gpgtar",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 66,
+    "name": "clang",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 67,
+    "name": "kleopatra",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 68,
+    "name": "maybe",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 69,
+    "name": "Tests",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 70,
+    "name": "Support",
+    "icon": "communication",
+    "color": "pink"
+  },
+  {
+    "id": 71,
+    "name": "Python",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 72,
+    "name": "qt",
+    "color": "checkered",
+    "icon": "umbrella"
+  },
+  {
+    "id": 73,
+    "name": "TOFU",
+    "color": "blue",
+    "icon": "project"
+  },
+  {
+    "id": 74,
+    "name": "rc",
+    "color": "orange",
+    "icon": "tag"
+  },
+  {
+    "id": 75,
+    "name": "gpgv",
+    "color": "blue",
+    "icon": "project"
   }
 ]

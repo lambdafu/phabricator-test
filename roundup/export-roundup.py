@@ -47,24 +47,18 @@ def get_status(status, priority):
         return 'open'
     return conf.get_status(status)
 
+def get_username(user):
+    if user is None or user == '':
+        return None
+    user = user_normal.get(user, user)
+    user = db.user.getnode(user)
+    username = conf.get_username(user.address, user.username)
+    return username
+
 class Conf(object):
     def __init__(self, confdir):
         with open(os.path.join(confdir, "users.json")) as fh:
             self.users = json.load(fh)
-
-        # with open(os.path.join(confdir, "emails.json")) as fh:
-        #     self.emails = json.load(fh)
-        #
-        # with open(os.path.join(confdir, "components.json")) as fh:
-        #     self.components = json.load(fh)
-        # self.r_components = dict()
-        # for comp, aliases in self.components.items():
-        #     self.r_components[comp] = comp
-        #     for alias in aliases:
-        #         self.r_components[alias] = comp
-        #
-        # with open(os.path.join(confdir, "type.json")) as fh:
-        #     self.ticket_type = json.load(fh)
 
         with open(os.path.join(confdir, "priority.json")) as fh:
             self.priority = json.load(fh)
@@ -75,20 +69,14 @@ class Conf(object):
         with open(os.path.join(confdir, "category.json")) as fh:
             self.category = json.load(fh)
 
-        # with open(os.path.join(confdir, "keywords.json")) as fh:
-        #     self.keywords = json.load(fh)
-        #
-        # with open(os.path.join(confdir, "portals.json")) as fh:
-        #     self.portals = json.load(fh)
-
         with open(os.path.join(confdir, "status.json")) as fh:
             self.status = json.load(fh)
 
         with open(os.path.join(confdir, "status-projects.json")) as fh:
             self.status_projects = json.load(fh)
 
-        # with open(os.path.join(confdir, "milestones.json")) as fh:
-        #     self.milestones = json.load(fh)
+        with open(os.path.join(confdir, "topic-projects.json")) as fh:
+            self.topic_projects = json.load(fh)
 
         self.extlink_projects = {}
         with open(os.path.join(confdir, "extlink-projects.json")) as fh:
@@ -97,18 +85,17 @@ class Conf(object):
             self.extlink_projects[re.compile(regex)] = projects
 
     def get_username(self, email, username):
-        return self.users.get(email, username)
-
-    def get_email(self, user):
-        return self.emails[user]
-
-    def get_component(self, alias):
-        if alias is None or alias == '':
-            return None
-        return self.r_components[alias]
-
-    def get_ticket_type(self, ticket_type):
-        return self.ticket_type[ticket_type]
+        email = email.lower()
+        username = self.users.get(email, username)
+        username = username.replace("@", "_")
+        username = username.replace(" ", "_")
+        username = username.replace("+", "_")
+        username = username.replace("#", "_")
+        username = username.replace("α", "a")
+        username = username.replace("β", "b")
+        username = username.replace("γ", "g")
+        username = username.replace("Á", "A")
+        return username
 
     def get_priority(self, priority):
         return self.priority[priority]
@@ -131,11 +118,13 @@ class Conf(object):
                 return projects
         return set()
 
-    def get_keywords(self, keyword):
-        return self.keywords[keyword]
-
-    def get_portals(self, portal):
-        return self.portals[portal]
+    def get_topic_projects(self, topics):
+        result = set()
+        for topic in topics:
+            topic = db.keyword.getnode(topic).name
+            topic = self.topic_projects[topic]
+            result = result.union(topic)
+        return result
 
     def get_status(self, status):
         return self.status[status]
@@ -145,72 +134,7 @@ class Conf(object):
             return set()
         return set(self.status_projects[status])
 
-    def get_milestone(self, milestone):
-        return self.milestones[milestone]
-
 conf = Conf("conf")
-
-
-
-
-keyword_map = {
-    'iobuf': (), # 1/1 issues
-    'asm': (), # 8/8 issues
-    'keyserver': (), # 10/10 issues
-    'ssh': (), # 9/9 issues
-    'w32': (), # 57/57 issues
-    'wontfix': (), # 109/109 issues
-    'nobug': (), # 176/176 issues
-    'scd': (), # 33/33 issues
-    'noinfo': (), # 65/65 issues
-    'tooold': (), # 120/120 issues
-    'agent': (), # 43/44 issues
-    'smime': (), # 28/28 issues
-    'openpgp': (), # 17/17 issues
-    'cross': (), # 1/1 issues
-    'faq': (), # 5/5 issues
-    'notdup': (), # 5/5 issues
-    'macos': (), # 13/13 issues
-    'mistaken': (), # 67/67 issues
-    'patch': (), # 22/22 issues
-    'kks': (), # 8/8 issues
-    'gpg4win': (), # 68/68 issues
-    'pinentry': (), # 26/26 issues
-    'uiserver': (), # 4/4 issues
-    'i18n': (), # 8/8 issues
-    'backport': (), # 14/15 issues
-    'gpg14': (), # 36/36 issues
-    'endoflife': (), # 12/12 issues
-    'dup': (), # 1/1 issues
-    'doc': (), # 27/27 issues
-    'gpg20': (), # 34/34 issues
-    'ipc': (), # 0/0 issues
-    'w64': (), # 13/13 issues
-    'npth': (), # 3/3 issues
-    'clangbug': (), # 3/3 issues
-    'eol': (), # 1/1 issues
-    'forwardport': (), # 1/1 issues
-    'gpgtar': (), # 3/3 issues
-    'isc13': (), # 0/0 issues
-    'gpg21': (), # 55/55 issues
-    'spam': (), # 1/1 issues
-    'dirmngr': (), # 51/51 issues
-    'maybe': (), # 1/1 issues
-    'kleopatra': (), # 9/9 issues
-    'debian': (), # 3/3 issues
-    'fedora': (), # 3/3 issues
-    'sillyUB': (), # 1/1 issues
-    'question': (), # 13/13 issues
-    'gpgol-addin': (), # 19/19 issues
-    'gpg23': (), # 6/6 issues
-    'gpg22': (), # 24/24 issues
-    'python': (), # 2/2 issues
-    'tofu': (), # 6/6 issues
-    'tests': (), # 1/1 issues
-    'qt': (), # 1/1 issues
-    'rc': (), # 1/1 issues
-    'gpgv': () # 1/1 issues
-}
 
 
 def process_categories(db):
@@ -288,7 +212,8 @@ def process_users(db):
         username = conf.get_username(user.address, user.username)
         retired[user] = is_retired
         by_name[username].append(user)
-        by_email[user.address].append(user)
+        email = user.address.lower()
+        by_email[email].append(user)
         by_id[user.id] = user
 
     # Sort first by retired status, then by id.
@@ -356,7 +281,7 @@ def process_users(db):
             data = {}
             data['name'] = username
             data['realname'] = user.realname if user.realname else username
-            data['email'] = user.address
+            data['email'] = user.address.lower()
             data['disabled'] = retired[user]
             # tags = sorted([role.strip().lower() for role in user.roles.split(",")])
             users.append(data)
@@ -409,6 +334,7 @@ def build_projects(project_state):
     projects = projects.union(conf.get_priority_projects(project_state['priority']))
     projects = projects.union(conf.get_category_projects(project_state['category']))
     projects = projects.union(conf.get_extlink_projects(project_state['extlink']))
+    projects = projects.union(conf.get_topic_projects(project_state['topic']))
     return projects
 
 def process_tasks(db):
@@ -418,18 +344,16 @@ def process_tasks(db):
     for ident in dbissues.getnodeids(retired=None):
         is_retired = dbissues.is_retired(ident)
         issue = dbissues.getnode(ident)
-        author = issue.creator
-        author = user_normal.get(author, author)
-        author = db.user.getnode(author)
+        author = get_username(issue.creator)
         status = db.status.getnode(issue.status).name
         cat = db.category.getnode(issue.category).name if issue.category else None
-        assignee = db.user.getnode(issue.assignedto).username if issue.assignedto else None
+        assignee = get_username(issue.assignedto)
         priority = db.priority.getnode(issue.priority).name if issue.priority else "triage"
-        topics = map(lambda x: db.keyword.getnode(x).name,issue.topic)
         msgs = map(lambda x: db.msg.getnode(x),issue.messages)
         files = map(lambda x: db.file.getnode(x),issue.files)
         nosy = map(lambda x: db.user.getnode(x),issue.nosy)
         superseder = map(lambda x: db.issue.getnode(x),issue.superseder)
+        assignedto = get_username(issue.assignedto)
 
         # missing: extlink, version
         if is_retired:
@@ -439,8 +363,8 @@ def process_tasks(db):
         data = {}
         data['id'] = int(ident)
         data['ts'] = int(issue.creation.timestamp())
-        data['author'] = author.username
-        data['owner'] = issue.assignedto
+        data['author'] = author
+        data['owner'] = assignedto
         data['title'] = issue.title
         data['priority'] = get_priority(status, priority)
         data['status'] = get_status(status, priority)
@@ -453,19 +377,21 @@ def process_tasks(db):
 
         # FIXME
         #data['description'] = issue.description
+        messages_added = set()
+        messages_removed = set()
 
         project_state = {
             'status': status,
             'priority': priority,
             'category': cat,
-            'extlink': issue.extlink
+            'extlink': issue.extlink,
+            'topic': set(issue.topic)
         }
 
         data['projects'] = list(build_projects(project_state))
 
-        print "[ISSUE %s] %s (%s) in %s (%s) with %d messages, %d files, superseder by %d and %d subscribers" % \
-                (issue.id, issue.title, status, cat, ",".join(topics),len(msgs),len(files),len(superseder),len(nosy))
-
+        print "[ISSUE %s] %s (%s) in %s with %d messages, %d files, superseder by %d and %d subscribers" % \
+                (issue.id, issue.title, status, cat, len(msgs),len(files),len(superseder),len(nosy))
         # The issue data is the current state, and the history
         # contains previous values.  By walking the history backwards, we
         # can recover the original ticket and all changes easily.
@@ -475,27 +401,58 @@ def process_tasks(db):
         history.reverse()
         for hist_item in history:
             (_, date, change_author, action, params) = hist_item
-            change_author = user_normal.get(change_author, change_author)
-            change_author = db.user.getnode(change_author)
+            change_author = get_username(change_author)
 
             changes = []
             change_templ = {}
             change_templ['ts'] = int(date.timestamp())
-            change_templ['author'] = change_author.username
+            change_templ['author'] = change_author
             if action == 'create':
                 # Ignore
                 pass
             elif action == 'set':
                 print "-", action, params
-                known_params = set(['files', 'messages', 'assignedto',
-                'topic', 'category', 'nosy', 'superseder',
-                'status', 'priority',
+                known_params = set(['files', 'messages',
+                'nosy', 'superseder',
+                'topic',
+                'status', 'priority', 'category', 'assignedto',
                 'extlink', 'title', 'duedate', 'version'])
                 unknown_params = set(params.keys()) - known_params
                 if len(unknown_params) > 0:
                     raise ValueError("Unknown params: %r" % unknown_params)
 
                 prev_project_state = dict(project_state)
+                if 'messages' in params:
+                    if len(params['messages']) > 1:
+                        raise ValueError("messages: %r" % (params['messages'],))
+                    method, messages = params['messages'][0]
+                    # We only store the latest state.
+                    all_messages = messages_added.union(messages_removed)
+                    messages = set(messages)
+                    if method == '-':
+                        messages_removed = messages_removed.union(messages - all_messages)
+                    elif method == '+':
+                        messages_added = messages_added.union(messages - all_messages)
+                    else:
+                        raise ValueError("messages method: %s" % method)
+                if 'assignedto' in params:
+                    old_owner = get_username(params['assignedto']) or ""
+                    change = dict(change_templ)
+                    change['type'] = 'owner'
+                    change['value'] = data['owner']
+                    data['owner'] = old_owner
+                    changes.append(change)
+                if 'topic' in params:
+                    topics = project_state['topic']
+                    for method, topic_args in params['topic']:
+                        if method == '+':
+                            topics = topics - set(topic_args)
+                        elif method == '-':
+                            topics = topics.union(set(topic_args))
+                        else:
+                            raise ValueError("unknown method: %s" %method)
+
+                    project_state['topic'] = topics
                 if 'title' in params:
                     change = dict(change_templ)
                     change['type'] = 'title'
@@ -520,6 +477,8 @@ def process_tasks(db):
                     change['value'] = data['version']
                     data['version'] = params['version']
                     changes.append(change)
+                if 'category' in params:
+                    project_state['category'] = db.category.getnode(params['category']).name if params['category'] else None
                 if 'status' in params or 'priority' in params:
                     prev_status = prev_project_state['status']
                     prev_priority = prev_project_state['priority']
@@ -564,7 +523,7 @@ def process_tasks(db):
                     if len(prev_projects - projects) > 0:
                         # The change adds projects.
                         change = dict(change_templ)
-                        change['type'] = 'projects'
+                        change['type'] = 'project'
                         change['method'] = '+'
                         change['value'] = list(prev_projects - projects)
                         data['projects'] = list(projects)
@@ -572,7 +531,7 @@ def process_tasks(db):
                     if len(projects - prev_projects) > 0:
                         # The change removes projects.
                         change = dict(change_templ)
-                        change['type'] = 'projects'
+                        change['type'] = 'project'
                         change['method'] = '-'
                         change['value'] = list(projects - prev_projects)
                         data['projects'] = list(projects)
@@ -593,9 +552,94 @@ def process_tasks(db):
 
             all_changes = changes + all_changes
 
+        all_messages = messages_added.union(messages_removed)
+        all_messages = sorted(list(all_messages))
+        extra_messages = set(issue.messages) - set(all_messages)
+        unknown_messages = set(messages_added) - set(issue.messages)
+        if len(unknown_messages) > 0:
+            raise ValueError("unknown messages: %r" % unknown_messages)
+        if len(extra_messages) > 1:
+            raise ValueError("More than one extra message: %r" % extra_messages)
+        if len(extra_messages) == 1:
+            description_message_id = list(extra_messages)[0]
+            all_messages = [description_message_id] + all_messages
+        else:
+            description_message_id = None
+        global DBDIR
+        for message_id in all_messages:
+            msg = db.msg.getnode(message_id)
+            change = {}
+            author = get_username(msg.creator)
+            change['author'] = author
+            change['ts'] = int(msg.creation.timestamp())
+            change['type'] = 'add_comment'
+            group = int(message_id) / 1000
+            if message_id in messages_removed:
+                change['value'] = ""
+            else:
+                with open(os.path.join(DBDIR, "db/files/msg/%i/msg%s" % (group, message_id))) as fh:
+                    change['value'] = safe_str(fh.read()).strip()
+            if message_id == description_message_id:
+                if (change['author'] == data['author']
+                    and abs(change['ts'] - data['ts'])) < 1000:
+                    data['description'] = change['value']
+                else:
+                    raise ValueError("Inconsistent description: %s vs %s, %s vs %s"
+                        % (change['author'], data['author'], change['ts'], data['ts']))
+            else:
+                all_changes.insert(0, change)
+            first_message = False
+
+        def cmp_change(a,b):
+            if a['ts'] < b['ts']:
+                return -1
+            elif a['ts'] > b['ts']:
+                return 1
+            else:
+                return 0
+        all_changes.sort(cmp_change)
+
         null_keys = [key for key in data.keys() if data[key] is None]
         for key in null_keys:
             data.pop(key)
+        if 'owner' in data and data['owner'] == '':
+            data.pop('owner')
+        if 'due-date' in data:
+            # insert fake initial change
+            all_changes.insert(0,
+            { 'author': data['author'],
+              'ts': data['ts'],
+              'type': 'due-date',
+              'value': data['due-date']})
+            data.pop('due-date')
+        if 'extlink' in data:
+            # insert fake initial change
+            all_changes.insert(0,
+            { 'author': data['author'],
+              'ts': data['ts'],
+              'type': 'extlink',
+              'value': data['extlink']})
+            data.pop('extlink')
+        if 'version' in data:
+            # insert fake initial change
+            all_changes.insert(0,
+            { 'author': data['author'],
+              'ts': data['ts'],
+              'type': 'version',
+              'value': data['version']})
+            data.pop('version')
+        if 'projects' in data:
+            # insert fake initial change
+            projects = data.pop('projects')
+            if len(projects) > 0:
+                all_changes.insert(0,
+                                   { 'author': data['author'],
+                                     'ts': data['ts'],
+                                     'type': 'project',
+                                     'method': '=',
+                                     'value': projects })
+        if 'description' not in data:
+            data['description'] = ""
         data['changes'] = all_changes
         tasks.append(data)
     return tasks
@@ -618,8 +662,11 @@ def safe_str(s):
         except:
             return s.decode("latin1")
 
+DBDIR = None
+
 if __name__ == '__main__':
-    tracker = instance.open(sys.argv[1])
+    DBDIR = sys.argv[1]
+    tracker = instance.open(DBDIR)
     db = tracker.open('admin')
 
     # Some strings are not valid UTF-8. FIXME: Automagically correct.
