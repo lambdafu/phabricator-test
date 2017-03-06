@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+$vendor = "gnupg";
+
 $root = dirname(dirname(__FILE__));
 require_once $root.'/phabricator/scripts/__init_script__.php';
 
@@ -28,7 +30,9 @@ const TRANSACTION_TYPES = [
 	'subscriber' => PhabricatorTransactions::TYPE_SUBSCRIBERS,
 	'project' => PhabricatorTransactions::TYPE_EDGE,
 	'parent' =>  PhabricatorTransactions::TYPE_EDGE,
-	'due-date' => PhabricatorTransactions::TYPE_CUSTOMFIELD
+	'due-date' => PhabricatorTransactions::TYPE_CUSTOMFIELD,
+	'extlink' => PhabricatorTransactions::TYPE_CUSTOMFIELD,
+	'version' => PhabricatorTransactions::TYPE_CUSTOMFIELD
 ];
 
 const TRANSACTION_EDGE_TYPES = [
@@ -121,16 +125,6 @@ function create_task($task) {
 		$task_obj->setOwnerPHID($owner->getPHID());
 	}
 
-	if (isset($task['projects'])) {
-		$phids = array();
-		$projects = $task['projects'];
-		foreach ($projects as $pname) {
-			$phid = getProjectByName($pname)->getPHID();
-			$phids[$phid] = $phid;
-		}
-		$task_obj->attachProjectPHIDs($phids);
-	}
-
 	if (isset($task['subscriber'])) {
 		$phids = array();
 		$subscribers = $task['subscriber'];
@@ -154,6 +148,7 @@ function create_task($task) {
 
 function create_change($task, $change) {
 	global $k2p;
+	global $vendor;
 
 	$task_obj = getTaskById($task['id']);
 
@@ -171,8 +166,12 @@ function create_change($task, $change) {
 
 	# Reinterpret value according to type.
 	if ($typename == 'owner') {
-		$owner = getUserByName($value);
-		$value = $owner->getPHID();
+	        if ($value == '') {
+			$value = null;
+		} else {
+			$owner = getUserByName($value);
+			$value = $owner->getPHID();
+		}
 	} else if ($typename == 'project') {
 		if (gettype($value) != "array") {
 			$value = [$value];
@@ -182,7 +181,7 @@ function create_change($task, $change) {
 			$phid = getProjectByName($pname)->getPHID();
 			$phids[$phid] = $phid;
 		}
-		$value = array($change['method'] => array($phid => $phid));
+		$value = array($change['method'] => $phids);
 	} else if ($typename == 'subscriber') {
 		if (gettype($value) != "array") {
 			$value = [$value];
@@ -192,7 +191,7 @@ function create_change($task, $change) {
 			$phid = getUserByName($sname)->getPHID();
 			$phids[$phid] = $phid;
 		}
-		$value = array($change['method'] => array($phid => $phid));
+		$value = array($change['method'] => $phids);
 	} else if ($typename == 'parent') {
 		if (gettype($value) != "array") {
 			$value = [$value];
@@ -212,8 +211,30 @@ function create_change($task, $change) {
 			$field_list->readFieldsFromStorage($task_obj);
 			$fields = $field_list->getFields();
 			$action->setMetadataValue('customfield:key',
-				'std:maniphest:semantics.due-date');
-			$oldvalue = $fields['std:maniphest:semantics.due-date']
+				'std:maniphest:' . $vendor . '.due-date');
+			$oldvalue = $fields['std:maniphest:' . $vendor . '.due-date']
+				->getOldValueForApplicationTransactions();
+			$action->setOldValue($oldvalue);
+	} else if ($typename == 'extlink') {
+		$field_list = PhabricatorCustomField::getObjectFields(
+			$task_obj,
+			PhabricatorCustomField::ROLE_EDIT);
+			$field_list->readFieldsFromStorage($task_obj);
+			$fields = $field_list->getFields();
+			$action->setMetadataValue('customfield:key',
+				'std:maniphest:' . $vendor . '.extlink');
+			$oldvalue = $fields['std:maniphest:' . $vendor . '.extlink']
+				->getOldValueForApplicationTransactions();
+			$action->setOldValue($oldvalue);
+	} else if ($typename == 'version') {
+		$field_list = PhabricatorCustomField::getObjectFields(
+			$task_obj,
+			PhabricatorCustomField::ROLE_EDIT);
+			$field_list->readFieldsFromStorage($task_obj);
+			$fields = $field_list->getFields();
+			$action->setMetadataValue('customfield:key',
+				'std:maniphest:' . $vendor . '.version');
+			$oldvalue = $fields['std:maniphest:' . $vendor . '.version']
 				->getOldValueForApplicationTransactions();
 			$action->setOldValue($oldvalue);
 	} else if ($typename == 'attachment') {
