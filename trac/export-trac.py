@@ -401,7 +401,8 @@ class TracTicket(object):
                     .union(get_projects_from_status(data['status']))
                     .union(get_projects_from_milestone(data['milestone'])))
         if len(projects) > 0:
-            transform['projects'] = list(projects)
+            changes.insert(0, {'field': 'project', 'time': data['time'], 'author': transform['author'],
+                               'oldvalue': set(), 'newvalue': projects })
 
         # create fake initial parents and due-date change
         if data['due_date']:
@@ -565,6 +566,12 @@ class TracTicket(object):
         elif field.startswith('_comment'):
             # Comment edit.  Bah.
             return None
+        elif field == 'project':
+            old = oldvalue
+            new = newvalue
+            if old == new:
+                return None
+            return self.new_make_phab_project_changes(changes, transform, old, new)
         else:
             raise ValueError("Unknown field: %r" % field)
         changes.append(transform)
