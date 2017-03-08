@@ -1,5 +1,5 @@
 diff --git a/src/applications/maniphest/editor/ManiphestTransactionEditor.php b/src/applications/maniphest/editor/ManiphestTransactionEditor.php
-index 0a4ea84..0339041 100644
+index 0a4ea8469..362b165fb 100644
 --- a/src/applications/maniphest/editor/ManiphestTransactionEditor.php
 +++ b/src/applications/maniphest/editor/ManiphestTransactionEditor.php
 @@ -219,6 +219,7 @@ final class ManiphestTransactionEditor
@@ -18,7 +18,28 @@ index 0a4ea84..0339041 100644
              ->setOldValue(array($object->getPHID() => $old))
              ->setNewValue(array($object->getPHID() => $new));
  
-@@ -894,6 +896,7 @@ final class ManiphestTransactionEditor
+@@ -815,10 +817,12 @@ final class ManiphestTransactionEditor
+     $is_open = !$object->isClosed();
+ 
+     $new_status = null;
++    $new_status_xaction = null;
+     foreach ($xactions as $xaction) {
+       switch ($xaction->getTransactionType()) {
+         case ManiphestTransaction::TYPE_STATUS:
+           $new_status = $xaction->getNewValue();
++          $new_status_xaction = $xaction;
+           break;
+       }
+     }
+@@ -839,6 +843,7 @@ final class ManiphestTransactionEditor
+       if ($actor_phid && $is_claim) {
+         $results[] = id(new ManiphestTransaction())
+           ->setTransactionType(ManiphestTransaction::TYPE_OWNER)
++	  ->setDangerousOverrideTimeStamp($new_status_xaction->getDangerousOverrideTimeStamp())
+           ->setNewValue($actor_phid);
+       }
+     }
+@@ -894,6 +899,7 @@ final class ManiphestTransactionEditor
          if ($old_value) {
            $results[] = id(new ManiphestTransaction())
              ->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS)
@@ -27,10 +48,10 @@ index 0a4ea84..0339041 100644
              ->setNewValue(
                array(
 diff --git a/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php b/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
-index 5851e01..c493d5e 100644
+index eb6f88d65..6494ba348 100644
 --- a/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
 +++ b/src/applications/transactions/editor/PhabricatorApplicationTransactionEditor.php
-@@ -1450,6 +1450,7 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -1462,6 +1462,7 @@ abstract class PhabricatorApplicationTransactionEditor
      }
  
      $xaction = newv(get_class(head($xactions)), array());
@@ -38,7 +59,7 @@ index 5851e01..c493d5e 100644
      $xaction->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS);
      $xaction->setNewValue(array('+' => $phids));
  
-@@ -2394,9 +2395,11 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -2402,9 +2403,11 @@ abstract class PhabricatorApplicationTransactionEditor
      }
  
      $should_cc = false;
@@ -50,7 +71,7 @@ index 5851e01..c493d5e 100644
          break;
        }
      }
-@@ -2426,7 +2429,9 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -2434,7 +2437,9 @@ abstract class PhabricatorApplicationTransactionEditor
      $xaction = newv(get_class(head($xactions)), array());
      $xaction->setTransactionType(PhabricatorTransactions::TYPE_SUBSCRIBERS);
      $xaction->setNewValue(array('+' => array($actor_phid)));
@@ -61,7 +82,7 @@ index 5851e01..c493d5e 100644
      array_unshift($xactions, $xaction);
  
      return $xactions;
-@@ -3045,10 +3050,11 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -3053,10 +3058,11 @@ abstract class PhabricatorApplicationTransactionEditor
      $story_type = $this->getFeedStoryType();
      $story_data = $this->getFeedStoryData($object, $xactions);
  
@@ -74,7 +95,7 @@ index 5851e01..c493d5e 100644
        ->setStoryAuthorPHID($this->getActingAsPHID())
        ->setRelatedPHIDs($related_phids)
        ->setPrimaryObjectPHID($object->getPHID())
-@@ -3317,6 +3323,7 @@ abstract class PhabricatorApplicationTransactionEditor
+@@ -3325,6 +3331,7 @@ abstract class PhabricatorApplicationTransactionEditor
        $template
          ->setTransactionType($xaction->getTransactionType())
          ->setMetadataValue('edge:type', $inverse_type)
@@ -83,7 +104,7 @@ index 5851e01..c493d5e 100644
            array(
              $edge_edit_type => array($object->getPHID() => $object->getPHID()),
 diff --git a/src/infrastructure/storage/lisk/LiskDAO.php b/src/infrastructure/storage/lisk/LiskDAO.php
-index 0527c3c..04dd6c8 100644
+index 94eef7d16..4f5da4b79 100644
 --- a/src/infrastructure/storage/lisk/LiskDAO.php
 +++ b/src/infrastructure/storage/lisk/LiskDAO.php
 @@ -199,6 +199,9 @@ abstract class LiskDAO extends Phobject {
@@ -135,7 +156,7 @@ index 0527c3c..04dd6c8 100644
  /* -(  Managing Connections  )----------------------------------------------- */
  
  
-@@ -1200,7 +1235,6 @@ abstract class LiskDAO extends Phobject {
+@@ -1201,7 +1236,6 @@ abstract class LiskDAO extends Phobject {
      $data = $this->getAllLiskPropertyValues();
  
      $conn = $this->establishConnection('w');
@@ -143,7 +164,7 @@ index 0527c3c..04dd6c8 100644
      $id_mechanism = $this->getConfigOption(self::CONFIG_IDS);
      switch ($id_mechanism) {
        case self::IDS_AUTOINCREMENT:
-@@ -1208,7 +1242,10 @@ abstract class LiskDAO extends Phobject {
+@@ -1209,7 +1243,10 @@ abstract class LiskDAO extends Phobject {
          // ID column, if it is empty. If the caller has explicitly provided a
          // value, use it.
          $id_key = $this->getIDKeyForUse();
@@ -155,7 +176,7 @@ index 0527c3c..04dd6c8 100644
            unset($data[$id_key]);
          }
          break;
-@@ -1216,7 +1253,10 @@ abstract class LiskDAO extends Phobject {
+@@ -1217,7 +1254,10 @@ abstract class LiskDAO extends Phobject {
          // If we are using counter IDs, assign a new ID if we don't already have
          // one.
          $id_key = $this->getIDKeyForUse();
@@ -167,7 +188,7 @@ index 0527c3c..04dd6c8 100644
            $counter_name = $this->getTableName();
            $id = self::loadNextCounterValue($conn, $counter_name);
            $this->setID($id);
-@@ -1377,10 +1417,15 @@ abstract class LiskDAO extends Phobject {
+@@ -1378,10 +1418,15 @@ abstract class LiskDAO extends Phobject {
      $use_timestamps = $this->getConfigOption(self::CONFIG_TIMESTAMPS);
  
      if ($use_timestamps) {
