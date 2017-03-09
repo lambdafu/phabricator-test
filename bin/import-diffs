@@ -1,0 +1,201 @@
+#!/usr/bin/env php
+<?php
+
+$root = dirname(dirname(__FILE__));
+require_once $root.'/phabricator/scripts/__init_script__.php';
+
+const TRANSACTION_TYPES = [
+	'title' => ManiphestTransaction::TYPE_TITLE,
+	'description' =>  ManiphestTransaction::TYPE_DESCRIPTION,
+	'owner' => ManiphestTransaction::TYPE_OWNER,
+	'status' => ManiphestTransaction::TYPE_STATUS,
+	'priority' => ManiphestTransaction::TYPE_PRIORITY,
+	'add_comment' => PhabricatorTransactions::TYPE_COMMENT,
+	'attachment' => PhabricatorTransactions::TYPE_COMMENT,
+	'subscriber' => PhabricatorTransactions::TYPE_SUBSCRIBERS,
+	'project' => PhabricatorTransactions::TYPE_EDGE,
+	'parent' =>  PhabricatorTransactions::TYPE_EDGE,
+	'due-date' => PhabricatorTransactions::TYPE_CUSTOMFIELD,
+	'extlink' => PhabricatorTransactions::TYPE_CUSTOMFIELD,
+	'version' => PhabricatorTransactions::TYPE_CUSTOMFIELD
+];
+
+const TRANSACTION_EDGE_TYPES = [
+	'project' => PhabricatorProjectObjectHasProjectEdgeType::EDGECONST,
+	'parent' => ManiphestTaskDependedOnByTaskEdgeType::EDGECONST
+];
+
+# Main
+
+if ($argc !== 2) {
+	echo pht(
+		"Usage: %s\n",
+		'import-diffs <diffs.json>');
+	exit(1);
+}
+
+$jsonfile = $argv[1];
+$json = file_get_contents($jsonfile, true);
+$data = json_decode($json);
+
+$failure = [];
+foreach($data as $rev) {
+	try {
+create_rev((array)$rev);
+}        catch (Exception $e) {
+                echo pht("... failed %s", $e)."\n";
+                global $failure;
+                $failure[] = ((array)$rev)['title'];
+        }
+}
+  
+echo pht("failed to upload these files:")."\n";
+foreach ($failure as $failed) {
+        echo pht("%s", $failed)."\n";
+}
+
+
+function create_rev($rev) {
+	$content_source = PhabricatorContentSource::newForSource(
+		PhabricatorBulkContentSource::SOURCECONST);
+
+	$id = $rev['id'];
+	$ts = $rev['ts'];
+	$author = getUserByName($rev['author']);
+	$title = $rev['title'];
+	$summary = $rev['summary'];
+	$test = $rev['test'];
+	$patch = $rev['patch'];
+
+	echo pht("importing: D%s", $id)."\n";
+
+	# Destroy old.
+
+	$viewer = id(PhabricatorUser::getOmnipotentUser());
+	$object_names = ['D' . (string)$id];
+	$object_query = id(new PhabricatorObjectQuery())
+		->setViewer($viewer)
+		->withNames($object_names);
+	$object_query->execute();
+	$named_objects = $object_query->getNamedResults();
+	foreach ($named_objects as $object_name => $object) {
+		echo pht(
+			"Destroying %s **%s**...\n",
+			get_class($object),
+			$object_name)."\n";
+
+		id(new PhabricatorDestructionEngine())
+			->destroyObject($object);
+	}
+
+	# Create new.
+
+	$rev_obj = DifferentialRevision::initializeNewRevision($author)
+		->setAuthorPHID($author->getPHID())
+		->setTitle($title)
+		->setSummary($summary)
+		->setTestPlan($test)
+		->setDangerousOverrideTimeStamp($ts)
+		->setDangerousOverrideID($id);
+		
+		
+	if (isset($rev['closed']) and $rev['closed']) {
+		$rev_obj->setStatus(ArcanistDifferentialRevisionStatus::ABANDONED);
+	}
+
+#	$rev_obj->save();
+
+	$parser = new ArcanistDiffParser();
+	$changes = $parser->parseDiff($patch);
+	$diff = DifferentialDiff::newFromRawChanges($author, $changes)
+		->setAuthorPHID($author->getPHID())
+		->setLintStatus(DifferentialLintStatus::LINT_SKIP)
+		->setUnitStatus(DifferentialUnitStatus::UNIT_SKIP)
+		->setDangerousOverrideTimeStamp($ts);
+
+	$diff_data_dict = array(
+		'authorPHID' => $author->getPHID(),
+#		'sourcePath' => $request->getValue('sourcePath'),
+#		'sourceMachine' => $request->getValue('sourceMachine'),
+#		'branch' => $request->getValue('branch'),
+#		'creationMethod' => $request->getValue('creationMethod'),
+#
+#		'bookmark' => $request->getValue('bookmark'),
+#		'repositoryUUID' => $repository_uuid,
+#		'repositoryPHID' => $repository_phid,
+#		'sourceControlSystem' => $request->getValue('sourceControlSystem'),
+#		'sourceControlPath' => $request->getValue('sourceControlPath'),
+#		'sourceControlBaseRevision' =>
+#		$request->getValue('sourceControlBaseRevision')
+		'lintStatus' => DifferentialLintStatus::LINT_SKIP,
+		'unitStatus' => DifferentialUnitStatus::UNIT_SKIP,
+    );
+
+	$xactions = array(
+		id(new DifferentialDiffTransaction())
+			->setTransactionType(DifferentialDiffTransaction::TYPE_DIFF_CREATE)
+		        ->setNewValue($diff_data_dict)
+			->setDangerousOverrideTimeStamp($ts),
+
+		);
+	id(new DifferentialDiffEditor())
+      	        ->setActor($author)
+	        ->setContentSource($content_source)
+	        ->setContinueOnNoEffect(true)
+		->setContinueOnMissingFields(true)
+		->applyTransactions($diff, $xactions);
+
+	
+	$transactions = array();
+	$action = id(new DifferentialTransaction())
+		->setTransactionType(DifferentialTransaction::TYPE_UPDATE)
+		->setDangerousOverrideTimeStamp($ts);
+	$action->setNewValue($diff->getPHID());
+	$transactions[] = $action;
+
+
+	$rev_obj->openTransaction();
+	$editor = id(new DifferentialTransactionEditor())
+		->setActor($author)
+		->setContentSource($content_source)
+		->setContinueOnNoEffect(true)
+		->setContinueOnMissingFields(true)
+		->applyTransactions($rev_obj, $transactions);
+	$rev_obj->saveTransaction();
+
+	echo pht('imported: %s', $id)."\n";
+}
+
+
+function getTaskById($id) {
+	$project = id(new ManiphestTask())
+		->loadOneWhere('id = %s',$id);
+
+	if(!$project) {
+		throw new Exception(sprintf("Task w/ id '%d' not found", $id));
+	}
+
+	return $project;
+}
+
+function getProjectByName($name) {
+	$project = id(new PhabricatorProject())
+		->loadOneWhere('name = %s',$name);
+
+	if(!$project) {
+		throw new Exception(sprintf("Project w/ name '%s' not found", $name));
+	}
+
+	return $project;
+}
+
+function getUserByName($name) {
+	$user = id(new PhabricatorUser())
+		->loadOneWhere('username = %s', $name);
+
+	if (!$user) {
+		throw new Exception(sprintf("User '%s' not found", $name));
+	}
+
+	return $user;
+}
