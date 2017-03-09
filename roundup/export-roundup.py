@@ -6,6 +6,9 @@ import logging
 import os
 from collections import defaultdict
 import re
+from datetime import datetime
+import shutil
+import subprocess
 
 from roundup import instance
 
@@ -35,6 +38,55 @@ status_map = {}
 # int to str
 priority_map = {}
 
+def is_patch(file_id, filename):
+    if int(file_id) in set([45, 85, 162, 188, 436, 444, 526, 547]):
+        return False
+    magic = subprocess.check_output(["file", filename])
+    return (magic.find("unified diff output") != -1)
+
+def parse_patch(filename):
+    hunk_re = re.compile(r"(---|\+\+\+)\s+(\S+)\b")
+    with open(filename, "r") as fh:
+        content = fh.readlines()
+    summary = []
+    patch = []
+    in_patch = False
+    for line in content:
+        line = safe_str(line)
+        if line.startswith("r\ Pas de fin"):
+            line = r'\ No newline at end of file'
+        if line.startswith("-- "):
+            in_patch = False
+        if line.startswith("--- "):
+            if not in_patch:
+                if len(summary) > 0 and summary[-1].startswith("index "):
+                    summary = summary[:-1]
+                if len(summary) > 0 and summary[-1].startswith("diff "):
+                    summary = summary[:-1]
+                if len(summary) > 0 and summary[-1].startswith("========="):
+                    summary = summary[:-1]
+                if len(summary) > 0 and summary[-1].startswith("Index: "):
+                    summary = summary[:-1]
+            in_patch = True
+        if in_patch:
+            if line.startswith("diff "):
+                continue
+            if line.startswith("index "):
+                continue
+            if line.startswith("new file "):
+                continue
+            if line.startswith("Only in "):
+                continue
+            if line.startswith("only in "):
+                continue
+            m = hunk_re.match(line)
+            if m:
+                line = "%s %s 1970-01-01\n" % (m.group(1), m.group(2))
+            patch.append(line)
+        else:
+            summary.append(line)
+    return "".join(summary), "".join(patch)
+
 def get_priority(status, priority):
     if priority is None:
         return None # "normal" ?
@@ -54,6 +106,36 @@ def get_username(user):
     user = db.user.getnode(user)
     username = conf.get_username(user.address, user.username)
     return username
+
+def make_filename(file_id, name):
+    name = name.replace("/", "_")
+    return '%s_%s' % (file_id, name)
+
+def massage_msg(match):
+    global DB
+    msg_id = match.group(1)
+    msg = DB.msg.getnode(msg_id)
+    author = get_username(msg.creator)
+    ts = int(msg.creation.timestamp())
+    issue_id = [item[4][1] for item in msg.history() if item[3] == 'link'][0]
+    ts_date = datetime.fromtimestamp(ts)
+    ts_str = ts_date.strftime("%b %d %Y, %I:%M %p")
+    return " T%s (%s on %s / [[ %s | Roundup ]])" % (issue_id, author, ts_str, "https://bugs.gnupg.org/gnupg/msg" + msg_id)
+
+def remarkupify(msg):
+    if msg is None:
+        return None
+    rei = re.compile(r"https?://bugs\.(?:g10code\.com|gnupg\.org)/gnupg/issue([1-9][0-9]{0,3})\b", re.MULTILINE)
+    msg = rei.sub(r'T\1', msg)
+    rei = re.compile(r" issue ?([1-9][0-9]{0,3})\b", re.MULTILINE)
+    msg = rei.sub(r' T\1', msg)
+    rem = re.compile(r" (?:https?://bugs\.(?:g10code\.com|gnupg\.org)/gnupg/)?msg([1-9][0-9]{1,4})\b", re.MULTILINE)
+    msg = rem.sub(massage_msg, msg)
+
+    # TODO:
+    # https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=commitdiff;h=
+    # Replace by hash or even rG....
+    return msg
 
 class Conf(object):
     def __init__(self, confdir):
@@ -338,8 +420,12 @@ def build_projects(project_state):
     return projects
 
 def process_tasks(db):
+    global DBDIR
     dbissues = db.issue
 
+    all_files = set()
+    all_diffs = []
+    diff_idx = 1
     tasks = []
     for ident in dbissues.getnodeids(retired=None):
         is_retired = dbissues.is_retired(ident)
@@ -350,9 +436,10 @@ def process_tasks(db):
         assignee = get_username(issue.assignedto)
         priority = db.priority.getnode(issue.priority).name if issue.priority else "triage"
         msgs = map(lambda x: db.msg.getnode(x),issue.messages)
-        files = map(lambda x: db.file.getnode(x),issue.files)
-        nosy = map(lambda x: db.user.getnode(x),issue.nosy)
-        superseder = map(lambda x: db.issue.getnode(x),issue.superseder)
+        files = set(issue.files)
+
+        nosy = map(get_username, issue.nosy)
+        superseder = issue.superseder
         assignedto = get_username(issue.assignedto)
 
         # missing: extlink, version
@@ -374,6 +461,7 @@ def process_tasks(db):
             data['due-date'] = None
         data['extlink'] = issue.extlink
         data['version'] = issue.version
+        data['subscriber'] = set(nosy)
 
         # FIXME
         #data['description'] = issue.description
@@ -412,9 +500,8 @@ def process_tasks(db):
                 pass
             elif action == 'set':
                 print "-", action, params
-                known_params = set(['files', 'messages',
-                'nosy', 'superseder',
-                'topic',
+                known_params = set(['files',
+                'superseder', 'topic', 'messages', 'nosy',
                 'status', 'priority', 'category', 'assignedto',
                 'extlink', 'title', 'duedate', 'version'])
                 unknown_params = set(params.keys()) - known_params
@@ -422,6 +509,46 @@ def process_tasks(db):
                     raise ValueError("Unknown params: %r" % unknown_params)
 
                 prev_project_state = dict(project_state)
+                if 'files' in params:
+                    for method, file_ids in params['files']:
+                        for file_id in file_ids:
+                            all_files.add(file_id)
+                            if method == '-':
+                                # Ignored.  Files in phabricator are attached to a comment, not a task.
+                                # So the only thing we could do is not add the file in the first place,
+                                # removing context.
+                                files.add(file_id)
+                                pass
+                            elif method == '+':
+                                files.remove(file_id)
+
+                                group = int(file_id) / 1000
+                                src = os.path.join(DBDIR, "db/files/file/%i/file%s" % (group, file_id))
+                                if is_patch(file_id, src):
+                                    all_files.remove(file_id)
+
+                                    change = dict(change_templ)
+                                    change['type'] = 'add_comment'
+                                    change['value'] = '{D%i}' % diff_idx
+                                    changes.append(change)
+
+                                    rev = dict(change_templ)
+                                    rev['id'] = str(diff_idx)
+                                    rev['title'] = make_filename(file_id, db.file.getnode(file_id).name)
+                                    summary, patch = parse_patch(src)
+                                    rev['summary'] = summary
+                                    rev['test'] = "See {T%s}" % data['id']
+                                    rev['patch'] = patch
+                                    all_diffs.append(rev)
+                                    diff_idx = diff_idx + 1
+                                else:
+                                    change = dict(change_templ)
+                                    change['type'] = 'attachment'
+                                    change['value'] = make_filename(file_id, db.file.getnode(file_id).name)
+                                    changes.append(change)
+                            else:
+                                raise ValueError("files method: %s" % method)
+
                 if 'messages' in params:
                     if len(params['messages']) > 1:
                         raise ValueError("messages: %r" % (params['messages'],))
@@ -459,6 +586,25 @@ def process_tasks(db):
                     change['value'] = data['title']
                     data['title'] = safe_str(params['title'])
                     changes.append(change)
+                if 'superseder' in params:
+                    for method, origs in params['superseder']:
+                        if method == '-':
+                            pass
+                        elif method == '+':
+                            for orig in set(origs):
+                                change = dict(change_templ)
+                                change['type'] = 'add_comment'
+                                change['value'] = 'Duplicate of T%s' % orig
+                                changes.append(change)
+
+                                change = dict(change_templ)
+                                change['type'] = 'project'
+                                change['method'] = '+'
+                                change['value'] = ['Duplicate']
+                                changes.append(change)
+                        else:
+                            raise ValueError ("unknown superseder method: %r" % method)
+
                 if 'duedate' in params:
                     change = dict(change_templ)
                     change['type'] = 'due-date'
@@ -479,6 +625,27 @@ def process_tasks(db):
                     changes.append(change)
                 if 'category' in params:
                     project_state['category'] = db.category.getnode(params['category']).name if params['category'] else None
+                if 'nosy' in params:
+                    edits = params['nosy']
+                    for method, users in edits:
+                        if method == '-':
+                            change = dict(change_templ)
+                            change['type'] = 'subscriber'
+                            change['method'] = '-'
+                            change['value'] = list(data['subscriber'])
+                            changes.append(change)
+                            users = map(get_username, users)
+                            data['subscriber'] = data['subscriber'].union(users)
+                        elif method == '+':
+                            change = dict(change_templ)
+                            change['type'] = 'subscriber'
+                            change['method'] = '+'
+                            change['value'] = list(data['subscriber'])
+                            changes.append(change)
+                            users = map(get_username, users)
+                            data['subscriber'] = data['subscriber'] - set(users)
+                        else:
+                            raise ValueError("Unknown nosy edit: %r, %r" % (method, users))
                 if 'status' in params or 'priority' in params:
                     prev_status = prev_project_state['status']
                     prev_priority = prev_project_state['priority']
@@ -537,12 +704,19 @@ def process_tasks(db):
                         data['projects'] = list(projects)
                         changes.append(change)
 
-
             elif action == 'link':
                 print "-", action, params
                 # what is "issue" and linktype "superseder"
-                (what, ident, linktype) = params
-                pass
+                (what, linked_ident, linktype) = params
+                if ident in set(['2057', '2058', '2059']): # 2034
+                    if what != 'issue' or linktype != 'superseder':
+                        raise ValueError("link error")
+                    change = dict(change_templ)
+                    change['type'] = 'parent'
+                    change['method'] = '+'
+                    change['value'] = [linked_ident]
+                    changes.append(change)
+
             elif action == 'unlink':
                 print "-", action, params
                 (what, ident, linktype) = params
@@ -551,6 +725,23 @@ def process_tasks(db):
                 raise ValueError("Unknown change type")
 
             all_changes = changes + all_changes
+
+        duplicate_of = None
+        if ident == '2034': # 2057, 2058, 2059
+            pass
+        elif len(superseder) > 1:
+            non_dupes = []
+            for orig in superseder:
+                orig_issue = dbissues.getnode(orig)
+                if len(orig_issue.superseder) == 0:
+                    non_dupes.append(orig)
+            if len(non_dupes) != 1:
+                raise ValueError("Can't decide on superseder: %r" % superseder)
+            duplicate_of = non_dupes[0]
+        elif len(superseder) == 1:
+            duplicate_of = superseder[0]
+        else:
+            pass
 
         all_messages = messages_added.union(messages_removed)
         all_messages = sorted(list(all_messages))
@@ -565,7 +756,6 @@ def process_tasks(db):
             all_messages = [description_message_id] + all_messages
         else:
             description_message_id = None
-        global DBDIR
         for message_id in all_messages:
             msg = db.msg.getnode(message_id)
             change = {}
@@ -578,7 +768,8 @@ def process_tasks(db):
                 change['value'] = ""
             else:
                 with open(os.path.join(DBDIR, "db/files/msg/%i/msg%s" % (group, message_id))) as fh:
-                    change['value'] = safe_str(fh.read()).strip()
+                    msg = safe_str(fh.read()).strip()
+                    change['value'] = remarkupify(msg)
             if message_id == description_message_id:
                 if (change['author'] == data['author']
                     and abs(change['ts'] - data['ts'])) < 1000:
@@ -589,6 +780,7 @@ def process_tasks(db):
             else:
                 all_changes.insert(0, change)
             first_message = False
+
 
         def cmp_change(a,b):
             if a['ts'] < b['ts']:
@@ -638,11 +830,64 @@ def process_tasks(db):
                                      'type': 'project',
                                      'method': '=',
                                      'value': projects })
+        if 'subscriber' in data:
+            # insert fake initial change
+            subs = data.pop('subscriber')
+            if len(subs) > 0:
+                all_changes.insert(0,
+                                   { 'author': data['author'],
+                                     'ts': data['ts'],
+                                     'type': 'subscriber',
+                                     'method': '=',
+                                     'value': list(subs) })
+        if len(files) > 0:
+            all_files = all_files.union(files)
+            files = list(files)
+            files.sort()
+            files.reverse()
+            for file_id in files:
+                group = int(file_id) / 1000
+                src = os.path.join(DBDIR, "db/files/file/%i/file%s" % (group, file_id))
+
+                if is_patch(file_id, src):
+                    change = dict(change_templ)
+                    change['type'] = 'add_comment'
+                    change['value'] = '{D%i}' % diff_idx
+                    all_changes.insert(0, change)
+
+                    rev = dict(change_templ)
+                    rev['id'] = str(diff_idx)
+                    rev['title'] = make_filename(file_id, db.file.getnode(file_id).name)
+                    summary, patch = parse_patch(src)
+                    rev['summary'] = summary
+                    rev['test'] = "See {T%s}" % data['id']
+                    rev['patch'] = patch
+                    all_diffs.append(rev)
+                    diff_idx = diff_idx + 1
+                else:
+                    change = {}
+                    change['author'] = data['author']
+                    change['ts'] = data['ts']
+                    change['type'] = 'attachment'
+                    fileobj = db.file.getnode(file_id)
+                    change['value'] = make_filename(file_id, fileobj.name)
+                    all_changes.insert(0, change)
+
         if 'description' not in data:
             data['description'] = ""
         data['changes'] = all_changes
         tasks.append(data)
-    return tasks
+
+    the_files = []
+    for file_id in all_files:
+        fileobj = db.file.getnode(file_id)
+        change = {}
+        change['author'] = get_username(fileobj.creator)
+        change['filename'] = make_filename(file_id, fileobj.name)
+        group = int(file_id) / 1000
+        change['_src'] = 'db/files/file/%i/file%s' % (group, file_id)
+        the_files.append(change)
+    return tasks, the_files, all_diffs
 
 
 def safe_ts(d):
@@ -662,12 +907,14 @@ def safe_str(s):
         except:
             return s.decode("latin1")
 
+DB = None
 DBDIR = None
 
 if __name__ == '__main__':
     DBDIR = sys.argv[1]
     tracker = instance.open(DBDIR)
     db = tracker.open('admin')
+    DB = db
 
     # Some strings are not valid UTF-8. FIXME: Automagically correct.
     db.conn.text_factory = safe_str
@@ -690,6 +937,9 @@ if __name__ == '__main__':
 
     if not os.path.exists("out"):
         os.makedirs("out")
+    if not os.path.exists("out/files"):
+        os.makedirs("out/files")
+
     # Also sets up normalization data structure, so must always be called first.
     users = process_users(db)
     with open("out/users.json", "w") as fh:
@@ -698,9 +948,26 @@ if __name__ == '__main__':
     process_status(db)
     process_priority(db)
 
-    tasks = process_tasks(db)
+    tasks, files, diffs = process_tasks(db)
     with open("out/tasks.json", "w") as fh:
-        fh.write(json.dumps(tasks, indent=2))
+       fh.write(json.dumps(tasks, indent=2))
+    def cmp_file_el(a,b):
+        if a['filename'] < b['filename']:
+            return -1
+        elif a['filename'] > b['filename']:
+            return 1
+        else:
+            return 0
+    files.sort(cmp_file_el)
+    for file_el in files:
+        src = os.path.join(DBDIR, file_el['_src'])
+        shutil.copy(src, os.path.join("out/files", file_el['filename']))
+        file_el.pop("_src")
+    with open("out/files.json", "w") as fh:
+       fh.write(json.dumps(files, indent=2))
+    with open("out/diffs.json", "w") as fh:
+       fh.write(json.dumps(diffs, indent=2))
+
     #process_keywords(db)
     #process_query(db)
     #process_files(db)
