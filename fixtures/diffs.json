@@ -1,0 +1,12 @@
+[
+	{
+		"id": "1",
+		"author": "marcus",
+		"ts": 1456164428, 
+		"title": "my-change.patch",
+		"summary": "Bla bla bla",
+		"test": "See T1.",
+		"patch": "--- call-agent.c  2017-01-01\n+++ call-agent.c  2017-01-01\n@@ -88,6 +88,11 @@\n                  the access to the agent. */\n \n   infostr = force_pipe_server? NULL : getenv (\"GPG_AGENT_INFO\");\n+  /* \n+   * Override Environment variable if specified on cmdline\n+   */\n+  if (opt.gpg_agent_info)\n+    infostr = force_pipe_server? NULL: opt.gpg_agent_info;\n   if (!infostr || !*infostr)\n     {\n       const char *pgmname;\n"
+     	}
+]
+

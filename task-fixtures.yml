@@ -22,6 +22,13 @@
 
 - debug: var=importprojects.stdout_lines
 
+- name: set up diffs
+  become_user: "{{daemon_user}}"
+  command: chdir={{phab_home}} php ./bin/import-diffs fixtures/diffs.json
+  register: importdiffs
+
+- debug: var=importdiffs.stdout_lines
+
 - name: set up tasks
   become_user: "{{daemon_user}}"
   command: chdir={{phab_home}} php ./bin/import-tasks fixtures/tasks.json
