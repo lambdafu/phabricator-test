@@ -95,7 +95,7 @@ function create_project($project) {
   //         '+' => array_fuse($members),
 	// 			));*/
   $content_source = PhabricatorContentSource::newForSource(
-		PhabricatorConsoleContentSource::SOURCECONST);
+		PhabricatorBulkContentSource::SOURCECONST);
 	$editor = id(new PhabricatorProjectTransactionEditor())
 		->setActor($author)
 		->setContinueOnNoEffect(true)
