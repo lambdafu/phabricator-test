@@ -143,3 +143,17 @@ TODO
 =====
 
 * https://bugs.gnupg.org/gnupg/issue1493 ticket reference
+
+
+Phabricator
+===========
+
+* https://secure.phabricator.com/book/phabricator/article/arcanist_quick_start/
+* https://secure.phabricator.com/T1205 allow external users to email phabricator, cf. https://phabricator.wikimedia.org/T52
+
+Examples
+========
+
+* T2034 (subtasks, mentions)
+* T2905 (external link)
+* T2941 (git rev)
