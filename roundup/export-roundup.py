@@ -419,6 +419,8 @@ def build_projects(project_state):
     projects = projects.union(conf.get_topic_projects(project_state['topic']))
     return projects
 
+projects_not_in_patch = set(["Bug Report", "Feature Request"])
+
 def process_tasks(db):
     global DBDIR
     dbissues = db.issue
@@ -455,6 +457,7 @@ def process_tasks(db):
         data['title'] = issue.title
         data['priority'] = get_priority(status, priority)
         data['status'] = get_status(status, priority)
+        final_status = data['status']
         if issue.duedate != None:
             data['due-date'] = int(issue.duedate.timestamp())
         else:
@@ -477,6 +480,7 @@ def process_tasks(db):
         }
 
         data['projects'] = list(build_projects(project_state))
+        final_projects = data['projects']
 
         print "[ISSUE %s] %s (%s) in %s with %d messages, %d files, superseder by %d and %d subscribers" % \
                 (issue.id, issue.title, status, cat, len(msgs),len(files),len(superseder),len(nosy))
@@ -539,6 +543,9 @@ def process_tasks(db):
                                     rev['summary'] = summary
                                     rev['test'] = "See {T%s}" % data['id']
                                     rev['patch'] = patch
+                                    rev['projects'] = list(set(final_projects) - projects_not_in_patch)
+                                    if final_status != 'open':
+                                        rev['closed'] = True
                                     all_diffs.append(rev)
                                     diff_idx = diff_idx + 1
                                 else:
@@ -862,6 +869,9 @@ def process_tasks(db):
                     rev['summary'] = summary
                     rev['test'] = "See {T%s}" % data['id']
                     rev['patch'] = patch
+                    rev['projects'] = list(set(final_projects) - projects_not_in_patch)
+                    if final_status != 'open':
+                        rev['closed'] = True
                     all_diffs.append(rev)
                     diff_idx = diff_idx + 1
                 else:
