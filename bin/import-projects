@@ -53,31 +53,35 @@ function create_project($project) {
 	$name = $project['name'];
 
 	echo pht("importing: %s", $id)."\n";
-  $author = lookup_user($project, "author");
+	$author = lookup_user($project, "author");
 
 	# Destroy old.
-  destroy_project($id);
+	destroy_project($id);
 
 	# Create new.
 	$obj = PhabricatorProject::initializeNewProject($author)
-			->setDangerousOverrideID($id);
+		->setDangerousOverrideID($id);
 	if(array_key_exists('ts', $project)) {
 		$obj->setDangerousOverrideTimeStamp($project['ts']);
 	}
-	if(array_key_exists('name', $project)) {
-		$obj->setName($project['name']);
-	}
+//	if(array_key_exists('name', $project)) {
+//		$obj->setName($project['name']);
+//	}
 	if(array_key_exists('icon', $project)) {
 		$obj->setIcon($project['icon']);
 	}
-  if(array_key_exists('color', $project)) {
+	if(array_key_exists('color', $project)) {
 		$obj->setColor($project['color']);
 	}
 
   // By saving the object in a transaction instead of $obj->save(),
-	// a default image is automatically generated.
+  // a default image is automatically generated.
 
   $xactions = array();
+
+  $xactions[] = id(new PhabricatorProjectTransaction())
+    ->setTransactionType(PhabricatorProjectTransaction::TYPE_NAME)
+    ->setNewValue($project['name']);
 
   //  $xactions[] = id(new PhabricatorProjectTransaction());
   //   if ($request->getValue('tags')) {
@@ -94,7 +98,7 @@ function create_project($project) {
   //       array(
   //         '+' => array_fuse($members),
 	// 			));*/
-  $content_source = PhabricatorContentSource::newForSource(
+	$content_source = PhabricatorContentSource::newForSource(
 		PhabricatorBulkContentSource::SOURCECONST);
 	$editor = id(new PhabricatorProjectTransactionEditor())
 		->setActor($author)
