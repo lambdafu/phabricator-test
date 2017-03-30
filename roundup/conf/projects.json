@@ -423,5 +423,12 @@
     "name": "gpgv",
     "color": "blue",
     "icon": "project"
+  },
+  {
+    "id": 76,
+    "name": "yubikey",
+    "color": "orange",
+    "icon": "tag"
   }
+
 ]

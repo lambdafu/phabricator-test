@@ -52,5 +52,6 @@
   "tofu": ["TOFU"],
   "rc": ["rc"],
   "gpgv": ["gpgv"],
+  "yubikey": ["yubikey"],
   "spam": ["Trash"]
 }
